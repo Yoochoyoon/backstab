@@ -25,22 +25,30 @@
   </style>
 </head>
 <body>
-  <div class="host-layout">
+  <div class="host-layout" data-phase="lobby">
     <!-- TV 화면 (위쪽, 크게) -->
     <div class="tv-upper">
-      <h1 id="titleLabel">집중표적게임</h1>
+      <header class="case-header">
+        <span class="case-header__label">CONFIDENTIAL CASE FILE</span>
+        <h1 id="titleLabel">집중표적게임</h1>
+        <div class="phase-status">
+          <span id="roundLabel" class="round-label"></span>
+          <span id="phaseLabel" class="phase-label"></span>
+          <strong id="timerLabel" class="countdown"></strong>
+        </div>
+      </header>
 
-      <div id="bossBanner" style="display:none; margin: 16px 0;">
+      <div id="bossBanner" class="boss-case-file" style="display:none; margin: 16px 0;">
         <span class="muted">보스 공개</span>
         <div id="bossName" style="font-size:2rem; font-weight:700; color:#f2c94c;"></div>
       </div>
 
-      <h2 id="phaseLabel"></h2>
-      <div class="timer" id="timerLabel"></div>
-      <div id="resultLog" style="font-size:1.2rem; margin: 12px 0; color: #e0e0e0;"></div>
+      <div class="event-report" aria-live="polite">
+        <div id="resultLog" class="event-report__content" style="font-size:1.2rem; margin: 12px 0; color: #e0e0e0;"></div>
+      </div>
       <div id="winnerLabel" style="font-size:1.5rem; font-weight:700; display:none; color:#f2c94c;"></div>
 
-      <div class="tv-grid" id="playerGrid"></div>
+      <div class="tv-grid player-file-grid" id="playerGrid" aria-label="생존자 명단"></div>
     </div>
 
     <!-- 진행자 컨트롤 (아래쪽, 작게) -->
