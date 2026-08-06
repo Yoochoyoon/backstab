@@ -1,6 +1,22 @@
 const socket = io();
 let players = [];
 
+const MAX_HP_BY_ROLE = {
+  boss: 5,
+  bodyguard: 4,
+  spy: 4,
+  traitor: 4,
+};
+
+function getMaxHpForRole(role) {
+  return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
+}
+
+function getHpPercentage(hp, role) {
+  const maxHp = getMaxHpForRole(role);
+  return Math.max(0, (hp / maxHp) * 100);
+}
+
 const createSection = document.getElementById("createSection");
 const lobbySection = document.getElementById("lobbySection");
 const gameControlSection = document.getElementById("gameControlSection");
@@ -44,12 +60,15 @@ function renderGrid() {
   for (const p of players) {
     const div = document.createElement("div");
     div.className = "tv-player-card";
-    const hpPercent = Math.max(0, (p.hp / 5) * 100);
+    if (!p.alive) div.classList.add("is-dead");
+    if (p.role === "boss") div.classList.add("is-boss");
+    const hpPercent = getHpPercentage(p.hp, p.role);
+    const maxHp = getMaxHpForRole(p.role);
     div.innerHTML = `<div class="tv-player-name">${p.nickname}${p.alive ? "" : " (사망)"}</div>
       <div style="background:#333; height:8px; margin-top:8px; border-radius:2px;">
         <div style="background:#e74c3c; height:100%; width:${hpPercent}%; border-radius:2px;"></div>
       </div>
-      <div class="tv-player-hp">HP ${p.hp}/5</div>`;
+      <div class="tv-player-hp">HP ${p.hp}/${maxHp}</div>`;
     grid.appendChild(div);
   }
 }
