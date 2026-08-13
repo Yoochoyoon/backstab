@@ -59,7 +59,8 @@ function renderGrid() {
   grid.innerHTML = "";
   for (const p of players) {
     const div = document.createElement("div");
-    div.className = "tv-player-card";
+    div.className = "player-file-card";
+    if (p.alive) div.classList.add("is-alive");
     if (!p.alive) div.classList.add("is-dead");
     if (p.role === "boss") div.classList.add("is-boss");
     const hpPercent = getHpPercentage(p.hp, p.role);

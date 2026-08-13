@@ -123,3 +123,202 @@ button.secondary { background: #33344a; margin-top: 8px; }
   margin-top: 24px;
 }
 .tv-grid .card { text-align: left; }
+
+/* Task 4: Host/TV Screen Noir Theme Styling */
+
+/* Step 1: Layout styles */
+.host-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  gap: 12px;
+  padding: 12px;
+  box-sizing: border-box;
+  background: var(--color-bg);
+}
+
+.tv-upper {
+  flex: 2;
+  overflow-y: auto;
+  background: var(--color-surface);
+  padding: 20px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+.control-lower {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--color-surface-raised);
+  padding: 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-border);
+}
+
+/* Step 2: Header styles */
+.case-header {
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--color-border-strong);
+}
+
+.case-header__label {
+  display: block;
+  font-family: var(--font-typewriter);
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.case-header h1 {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--color-text);
+  margin: 0 0 12px 0;
+}
+
+/* Step 3: Phase status styles */
+.phase-status {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  font-size: 1.1rem;
+  color: var(--color-text-muted);
+}
+
+.phase-label {
+  font-family: var(--font-display);
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.round-label {
+  font-family: var(--font-typewriter);
+  font-size: 1rem;
+}
+
+/* Step 4: Timer/countdown styles */
+.countdown {
+  font-family: var(--font-typewriter);
+  font-size: 3rem;
+  font-weight: 700;
+  text-align: right;
+  color: var(--color-gold-bright);
+  min-width: 140px;
+}
+
+.countdown.is-warning {
+  color: var(--color-warning);
+}
+
+.countdown.is-critical {
+  color: var(--color-crimson-bright);
+}
+
+/* Step 5: Boss case file styles */
+.boss-case-file {
+  background: var(--color-paper);
+  border: 2px solid var(--color-gold);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: var(--shadow-card);
+}
+
+.boss-case-file__label {
+  font-family: var(--font-typewriter);
+  font-size: 0.85rem;
+  color: var(--color-ink);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.boss-case-file__name {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: var(--color-gold);
+}
+
+.boss-case-file__hp {
+  font-size: 1.1rem;
+  color: var(--color-ink);
+  margin-top: 12px;
+}
+
+.boss-case-file.is-critical {
+  border-color: var(--color-crimson-bright);
+  background: rgba(195, 58, 63, 0.08);
+}
+
+/* Step 6: Player grid styles */
+.player-file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+
+@media (min-width: 1200px) {
+  .player-file-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .player-file-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+/* Step 7: Player card styles */
+.player-file-card {
+  background: var(--color-paper);
+  border: 2px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  text-align: center;
+  box-shadow: var(--shadow-card);
+  transition: all 200ms ease-out;
+}
+
+.player-file-card.is-alive {
+  color: var(--color-ink);
+}
+
+.player-file-card.is-dead {
+  background: var(--color-dead);
+  color: var(--color-text-disabled);
+  opacity: 0.5;
+  text-decoration: line-through;
+  border-color: var(--color-border);
+}
+
+.player-file-card.is-targeted {
+  border-color: var(--color-crimson-bright);
+  background: rgba(195, 58, 63, 0.12);
+  box-shadow: 0 0 0 3px rgba(195, 58, 63, 0.2);
+}
+
+.player-file-card.is-boss {
+  border-color: var(--color-gold);
+  background: rgba(199, 165, 90, 0.08);
+}
+
+.tv-player-name {
+  font-weight: 700;
+  margin-bottom: 6px;
+  font-size: 0.95rem;
+}
+
+.tv-player-hp {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin-top: 4px;
+}
