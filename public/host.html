@@ -6,126 +6,270 @@
   <title>진행자 - Backstab</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
-    .host-layout {
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: linear-gradient(135deg, #6B2E2E 0%, #8B4545 50%, #6B2E2E 100%);
+      background-image:
+        radial-gradient(circle, rgba(0,0,0,0.4) 2px, transparent 2px),
+        linear-gradient(135deg, #6B2E2E 0%, #8B4545 50%, #6B2E2E 100%);
+      background-size: 25px 25px, 100% 100%;
+      background-attachment: fixed;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .host-container {
+      width: 100%;
+      max-width: 1280px;
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      gap: 12px;
-      padding: 12px;
-      box-sizing: border-box;
-      background: linear-gradient(135deg, #3d1a1a 0%, #5d2e2e 50%, #4a2424 100%);
+      gap: 30px;
     }
-    .tv-upper {
-      flex: 2;
-      overflow-y: auto;
-      background: linear-gradient(135deg, #4a2424 0%, #6b3030 50%, #5d2e2e 100%);
-      background-image:
-        radial-gradient(circle, rgba(255,255,255,0.03) 1px, transparent 1px);
-      background-size: 20px 20px;
-      padding: 16px;
-      border-radius: 8px;
-      border: 2px solid #8B5A2B;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    }
-    .control-lower {
-      flex: 1;
-      overflow-y: auto;
-      background: linear-gradient(135deg, #3d1a1a 0%, #5d2e2e 100%);
-      padding: 16px;
-      border-radius: 8px;
-      border: 2px solid #8B5A2B;
-      box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
-    }
-    .tv-upper h1 { margin-top: 0; color: #ffffff; font-weight: 900; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); }
-    .tv-upper h2 { color: #FFD700; font-weight: 700; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-    .tv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 12px; margin-top: 16px; }
-    .tv-player-card {
-      background: rgba(0,0,0,0.3);
-      padding: 12px;
-      border-radius: 4px;
-      text-align: center;
-      border: 2px solid #FFD700;
-      box-shadow: 0 0 10px rgba(255,215,0,0.3);
-    }
-    .tv-player-name { font-weight: 700; color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-    .tv-player-hp { font-size: 0.9rem; color: #FFD700; margin-top: 4px; font-weight: 600; }
 
-    /* 버튼 스타일 */
-    button {
-      background: rgba(255,215,0,0.1);
-      color: #FFD700;
-      border: 2px solid #FFD700;
-      padding: 10px 16px;
-      border-radius: 4px;
+    /* BACKSTEP 타이틀 */
+    .title-section {
+      text-align: center;
+    }
+
+    .backstep-title {
+      font-size: 4rem;
+      font-weight: 900;
+      color: #FFFFFF;
+      text-shadow: 3px 3px 0px #000000, -1px -1px 0px #000000;
+      letter-spacing: 8px;
+      margin-bottom: 20px;
+      text-transform: uppercase;
+    }
+
+    .subtitle-box {
+      display: inline-block;
+      border: 3px solid #FFFFFF;
+      border-radius: 15px;
+      padding: 12px 30px;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .subtitle-text {
+      font-size: 1.5rem;
+      color: #FFFFFF;
       font-weight: 700;
+      letter-spacing: 3px;
+    }
+
+    /* 로비 섹션 */
+    .lobby-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      margin-top: 30px;
+    }
+
+    .lobby-left, .lobby-right {
+      background: rgba(0,0,0,0.3);
+      border: 3px solid #FFFFFF;
+      border-radius: 10px;
+      padding: 30px;
+    }
+
+    .section-label {
+      font-size: 0.9rem;
+      color: #CCCCCC;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-bottom: 15px;
+      font-weight: 600;
+    }
+
+    h2 {
+      font-size: 2rem;
+      color: #FFFFFF;
+      font-weight: 900;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 0px #000000;
+    }
+
+    .room-code {
+      font-size: 3rem;
+      font-weight: 900;
+      color: #FFD700;
+      text-shadow: 2px 2px 0px #000000;
+      letter-spacing: 10px;
+      margin-bottom: 20px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .player-count {
+      font-size: 1.2rem;
+      color: #FFFFFF;
+      margin-bottom: 20px;
+    }
+
+    .player-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .player-item {
+      background: rgba(255,255,255,0.1);
+      border: 2px solid #FFFFFF;
+      border-radius: 5px;
+      padding: 12px 15px;
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      background: rgba(0,0,0,0.3);
+      border: 3px solid #FFFFFF;
+      color: #FFFFFF;
+      padding: 15px 25px;
+      font-size: 1rem;
+      font-weight: 700;
+      border-radius: 8px;
       cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
       transition: all 0.3s ease;
-      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+      text-shadow: 1px 1px 0px #000000;
     }
+
     button:hover:not(:disabled) {
-      background: rgba(255,215,0,0.2);
-      box-shadow: 0 0 15px rgba(255,215,0,0.5);
+      background: rgba(255,255,255,0.2);
+      box-shadow: 0 0 20px rgba(255,255,255,0.3);
+      transform: translateY(-2px);
     }
+
     button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
     }
 
-    /* 제목 텍스트 */
-    h3 { color: #ffffff; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-    .muted { color: #CCB896; }
-    .error { color: #FF6B6B; }
+    .error {
+      color: #FF6B6B;
+      font-weight: 700;
+      margin-top: 10px;
+    }
+
+    /* 게임 중 화면 */
+    #gameSection {
+      display: none;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .game-info {
+      background: rgba(0,0,0,0.3);
+      border: 3px solid #FFFFFF;
+      border-radius: 10px;
+      padding: 20px;
+      color: #FFFFFF;
+      margin-bottom: 20px;
+    }
+
+    .game-info h3 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+      color: #FFD700;
+    }
+
+    @media (max-width: 768px) {
+      .lobby-container {
+        grid-template-columns: 1fr;
+      }
+
+      .backstep-title {
+        font-size: 2.5rem;
+        letter-spacing: 4px;
+      }
+
+      .room-code {
+        font-size: 2rem;
+        letter-spacing: 5px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="host-layout" data-phase="lobby">
-    <!-- TV 화면 (위쪽, 크게) -->
-    <div class="tv-upper">
-      <header class="case-header">
-        <span class="case-header__label">CONFIDENTIAL CASE FILE</span>
-        <h1 id="titleLabel">Backstab</h1>
-        <div class="phase-status">
-          <span id="roundLabel" class="round-label"></span>
-          <span id="phaseLabel" class="phase-label"></span>
-          <strong id="timerLabel" class="countdown"></strong>
-        </div>
-      </header>
-
-      <div id="bossBanner" class="boss-case-file" style="display:none; margin: 16px 0;">
-        <span class="muted">보스 공개</span>
-        <div id="bossName" style="font-size:2rem; font-weight:700; color:#f2c94c;"></div>
+  <div class="host-container">
+    <!-- BACKSTEP 타이틀 -->
+    <div class="title-section">
+      <div class="backstep-title">BACKSTAB</div>
+      <div class="subtitle-box">
+        <div class="subtitle-text">방관 놀기</div>
       </div>
-
-      <div class="event-report" aria-live="polite">
-        <div id="resultLog" class="event-report__content" style="font-size:1.2rem; margin: 12px 0; color: #e0e0e0;"></div>
-      </div>
-      <div id="winnerLabel" style="font-size:1.5rem; font-weight:700; display:none; color:#f2c94c;"></div>
-
-      <div class="tv-grid player-file-grid" id="playerGrid" aria-label="생존자 명단"></div>
     </div>
 
-    <!-- 진행자 컨트롤 (아래쪽, 작게) -->
-    <div class="control-lower">
-      <div id="createSection">
-        <button id="createRoomBtn">방 만들기</button>
-      </div>
-
-      <div id="lobbySection" style="display:none">
-        <h3>방 코드: <span id="roomCode" style="color:#f2c94c; font-weight:700;"></span></h3>
-        <p class="muted">플레이어들은 /player 에서 이 코드로 입장합니다.</p>
-        <ul id="playerList" class="player-list"></ul>
-        <button id="startBtn" disabled>시작 (6~10명 필요)</button>
-      </div>
-
-      <div id="gameControlSection" style="display:none">
-        <ul id="gamePlayerList" class="player-list"></ul>
-        <div style="margin-top: 12px;">
-          <button id="advanceBtn">다음 단계로 (강제 진행)</button>
-          <button id="extendBtn" class="secondary">시간 연장 (+1분)</button>
+    <!-- 로비 화면 -->
+    <div id="lobbyScreen" class="lobby-container">
+      <!-- 왼쪽: 방 정보 -->
+      <div class="lobby-left">
+        <div class="section-label">방 번호</div>
+        <div class="room-code" id="roomCodeDisplay">----</div>
+        <div class="player-count" id="playerCountDisplay">0/8 명</div>
+        <div style="color: #CCCCCC; font-size: 0.9rem;">
+          플레이어는 /player에서<br>이 코드로 입장합니다
         </div>
       </div>
 
-      <p class="error" id="errorLabel"></p>
+      <!-- 오른쪽: 플레이어 목록 및 시작 -->
+      <div class="lobby-right">
+        <div class="section-label">입장한 플레이어</div>
+        <ul class="player-list" id="lobbyPlayerList"></ul>
+        <div class="button-group">
+          <button id="startBtn" disabled style="flex: 1;">시작하기</button>
+          <button id="createRoomBtn" style="flex: 1;">새 방 만들기</button>
+        </div>
+        <p class="error" id="errorLabel"></p>
+      </div>
+    </div>
+
+    <!-- 게임 중 화면 -->
+    <div id="gameSection" style="display: none;">
+      <div class="game-info">
+        <h3 id="phaseLabel">라운드 1 - 낮</h3>
+        <div style="font-size: 2rem; font-weight: 900; color: #FFD700;" id="timerLabel">--:--</div>
+      </div>
+
+      <div id="bossBanner" style="display:none; background: rgba(0,0,0,0.3); border: 3px solid #FFD700; border-radius: 10px; padding: 20px; margin-bottom: 20px;">
+        <div style="color: #CCCCCC; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 10px;">보스 공개</div>
+        <div id="bossName" style="font-size: 2.5rem; font-weight: 900; color: #FFD700;"></div>
+      </div>
+
+      <div class="game-grid" id="gamePlayerGrid"></div>
+
+      <div id="resultLog" style="background: rgba(0,0,0,0.3); border: 3px solid #FFFFFF; border-radius: 10px; padding: 20px; color: #FFFFFF; margin-top: 20px; min-height: 100px;"></div>
+
+      <div class="button-group" style="margin-top: 20px;">
+        <button id="advanceBtn" style="flex: 1;">다음 단계로</button>
+        <button id="extendBtn" style="flex: 1;">시간 연장 (+1분)</button>
+      </div>
+    </div>
+
+    <!-- 게임 종료 화면 -->
+    <div id="endSection" style="display: none;">
+      <div id="winnerLabel" style="text-align: center; font-size: 2.5rem; font-weight: 900; color: #FFD700; text-shadow: 2px 2px 0px #000000; margin-bottom: 30px;"></div>
+      <div class="game-grid" id="endPlayerGrid"></div>
     </div>
   </div>
 
