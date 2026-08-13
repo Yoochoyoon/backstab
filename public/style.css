@@ -296,19 +296,6 @@ button.secondary { background: #33344a; margin-top: 8px; }
   margin: 20px 0;
 }
 
-@media (min-width: 1200px) {
-  .player-file-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (max-width: 767px) {
-  .player-file-grid {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-}
-
 /* Step 7: Player card styles */
 .player-file-card {
   background: var(--color-paper);
@@ -373,4 +360,157 @@ button.secondary { background: #33344a; margin-top: 8px; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Task 7: Responsive Design Media Queries */
+
+/* Ultra-small mobile (<360px) */
+@media (max-width: 359px) {
+  .host-layout {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .tv-upper {
+    padding: 12px;
+  }
+
+  .case-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .countdown {
+    font-size: 2rem;
+  }
+
+  .player-file-grid {
+    gap: 6px;
+  }
+
+  .player-file-card {
+    padding: 8px;
+  }
+}
+
+/* Mobile (360px - 767px) */
+@media (min-width: 360px) and (max-width: 767px) {
+  .case-header h1 {
+    font-size: 2rem;
+  }
+
+  .countdown {
+    font-size: 2.4rem;
+  }
+
+  .player-file-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .player-file-card {
+    padding: 10px;
+  }
+
+  .tv-upper {
+    padding: 16px;
+  }
+
+  .control-lower {
+    padding: 12px;
+  }
+}
+
+/* Tablet (768px - 1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
+  .host-layout {
+    padding: 14px;
+    gap: 14px;
+  }
+
+  .tv-upper {
+    padding: 20px;
+  }
+
+  .case-header h1 {
+    font-size: 2.2rem;
+  }
+
+  .countdown {
+    font-size: 3rem;
+  }
+
+  .player-file-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .player-file-card {
+    padding: 12px;
+  }
+
+  .tv-player-name {
+    font-size: 0.95rem;
+  }
+
+  .tv-player-hp {
+    font-size: 0.85rem;
+  }
+}
+
+/* Large screen / TV / Desktop (1200px+) */
+@media (min-width: 1200px) {
+  .host-layout {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .tv-upper {
+    padding: 24px;
+  }
+
+  .control-lower {
+    padding: 20px;
+  }
+
+  .case-header h1 {
+    font-size: 2.8rem;
+  }
+
+  .countdown {
+    font-size: 4rem;
+  }
+
+  .player-file-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+
+  .player-file-card {
+    padding: 16px;
+  }
+
+  .tv-player-name {
+    font-size: 1.1rem;
+  }
+
+  .tv-player-hp {
+    font-size: 0.95rem;
+  }
+
+  .phase-status {
+    font-size: 1.2rem;
+  }
+
+  .phase-label {
+    font-size: 1.6rem;
+  }
+}
+
+/* Touch target minimum size (44x44px) */
+button,
+[role="button"],
+.clickable,
+.player-file-card {
+  min-height: 44px;
+  min-width: 44px;
 }
