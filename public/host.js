@@ -99,6 +99,11 @@ socket.on("public:boss_revealed", ({ nickname }) => {
 });
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
+  const gameShell = document.querySelector(".host-layout");
+  if (gameShell) {
+    gameShell.setAttribute("data-phase", phase);
+  }
+
   errorLabel.textContent = "";
   document.getElementById("winnerLabel").style.display = "none";
   if (phase === "lobby") {
@@ -132,6 +137,11 @@ socket.on("state:vote_result", ({ damageLog, tie, finalTie }) =>
 );
 
 socket.on("state:game_over", ({ winner }) => {
+  const gameShell = document.querySelector(".host-layout");
+  if (gameShell) {
+    gameShell.setAttribute("data-phase", "game_over");
+  }
+
   const label = document.getElementById("winnerLabel");
   label.style.display = "block";
   label.textContent = WINNER_LABELS[winner] ?? winner;

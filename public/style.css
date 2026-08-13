@@ -135,6 +135,26 @@ button.secondary { background: #33344a; margin-top: 8px; }
   padding: 12px;
   box-sizing: border-box;
   background: var(--color-bg);
+  transition: background-color 500ms ease-out;
+}
+
+.host-layout[data-phase="night"] {
+  background: var(--color-bg-deep);
+}
+
+.host-layout[data-phase="night"] .tv-upper {
+  background: var(--color-surface);
+  filter: brightness(0.95);
+}
+
+.host-layout[data-phase="day_reveal"],
+.host-layout[data-phase="day_discussion"],
+.host-layout[data-phase="day_vote"] {
+  background: var(--color-bg);
+}
+
+.host-layout[data-phase="day_reveal"] .tv-upper {
+  background: rgba(231, 216, 184, 0.05);
 }
 
 .tv-upper {
