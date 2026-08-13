@@ -6,8 +6,14 @@
   <title>진행자 - Backstab</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
+    /* ============================================
+       CSS-ONLY 요소: 배경, 질감, 대각선, 로고, 버튼
+       이미지 에셋: halftone-fist.svg, halftone-silhouette.svg
+       ============================================ */
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
+    /* ========== CSS: 버건디 배경 ========== */
     body {
       background: linear-gradient(135deg, #5D2E2E 0%, #8B4545 50%, #5D2E2E 100%);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Arial', sans-serif;
@@ -16,7 +22,7 @@
       position: relative;
     }
 
-    /* 배경 물결 효과 */
+    /* ========== CSS: 종이 질감 (물결 무늬) ========== */
     body::before {
       content: '';
       position: fixed;
@@ -25,8 +31,9 @@
       width: 100%;
       height: 100%;
       background:
-        linear-gradient(180deg, rgba(139,69,69,0.3) 0%, transparent 50%),
-        repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px);
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px),
+        repeating-linear-gradient(90deg, transparent, transparent 3px, rgba(0,0,0,0.05) 3px, rgba(0,0,0,0.05) 6px),
+        linear-gradient(45deg, rgba(139,69,69,0.2) 0%, transparent 50%, rgba(139,69,69,0.2) 100%);
       pointer-events: none;
       z-index: 1;
     }
@@ -53,64 +60,55 @@
       position: relative;
     }
 
-    /* 기울어진 흰색 라인 (좌상단) */
+    /* ========== CSS: 대각선 선 (좌상단) ========== */
     .line-top-left {
       position: absolute;
-      width: 400px;
-      height: 100px;
-      top: -50px;
-      left: -100px;
-      background: linear-gradient(135deg, transparent 45%, #FFFFFF 45%, #FFFFFF 55%, transparent 55%);
-      opacity: 0.3;
+      width: 500px;
+      height: 150px;
+      top: -30px;
+      left: -80px;
+      background: linear-gradient(135deg, transparent 48%, #FFFFFF 48%, #FFFFFF 52%, transparent 52%);
+      opacity: 0.25;
+      z-index: 3;
+      pointer-events: none;
     }
 
-    /* 기울어진 흰색 라인 (우하단) */
+    /* ========== CSS: 대각선 선 (우하단) ========== */
     .line-bottom-right {
       position: absolute;
-      width: 500px;
-      height: 120px;
+      width: 600px;
+      height: 180px;
       bottom: -50px;
       right: -100px;
-      background: linear-gradient(45deg, transparent 45%, #FFFFFF 45%, #FFFFFF 55%, transparent 55%);
-      opacity: 0.3;
-    }
-
-    /* 팝아트 망점 (좌상단) - 흑백 */
-    .halftone-top-left {
-      position: absolute;
-      top: 50px;
-      left: 30px;
-      width: 300px;
-      height: 300px;
-      background:
-        radial-gradient(circle, #FFFFFF 30%, transparent 30%),
-        radial-gradient(circle, #FFFFFF 30%, transparent 30%);
-      background-size: 20px 20px, 25px 25px;
-      background-position: 0 0, 10px 10px;
-      opacity: 0.8;
-      border: 4px solid #FFFFFF;
-      border-radius: 50%;
-      transform: rotate(-15deg);
+      background: linear-gradient(45deg, transparent 48%, #FFFFFF 48%, #FFFFFF 52%, transparent 52%);
+      opacity: 0.25;
       z-index: 3;
+      pointer-events: none;
     }
 
-    /* 팝아트 망점 (우하단) - 빨강/검정 */
-    .halftone-bottom-right {
+    /* ========== 이미지 에셋: 주먹 (좌상단) ========== */
+    .halftone-fist {
       position: absolute;
-      bottom: 80px;
-      right: 40px;
+      top: 20px;
+      left: 20px;
+      width: 280px;
+      height: 280px;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    /* ========== 이미지 에셋: 사람 실루엣 (우하단) ========== */
+    .halftone-silhouette {
+      position: absolute;
+      bottom: 40px;
+      right: 30px;
       width: 250px;
       height: 250px;
-      background:
-        radial-gradient(circle, rgba(255,0,0,0.8) 25%, transparent 25%),
-        radial-gradient(circle, rgba(0,0,0,0.6) 25%, transparent 25%);
-      background-size: 18px 18px, 22px 22px;
-      background-position: 0 0, 11px 11px;
-      opacity: 0.9;
-      z-index: 3;
+      z-index: 4;
+      pointer-events: none;
     }
 
-    /* 메인 컨텐츠 */
+    /* ========== 메인 컨텐츠 ========== */
     .main-content {
       position: relative;
       z-index: 5;
@@ -119,7 +117,7 @@
       text-align: center;
     }
 
-    /* BACKSTEP 타이틀 */
+    /* ========== CSS: BACKSTAB 로고 ========== */
     .backstep-title {
       font-size: 5.5rem;
       font-weight: 900;
@@ -135,7 +133,7 @@
       font-family: 'Arial Black', sans-serif;
     }
 
-    /* 방관 놀기 박스 */
+    /* ========== CSS: 방관 놀기 박스 ========== */
     .subtitle-box {
       display: inline-block;
       border: 4px solid #FFFFFF;
@@ -152,7 +150,7 @@
       letter-spacing: 4px;
     }
 
-    /* 로비 섹션 */
+    /* ========== 로비 섹션 ========== */
     .lobby-container {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -229,6 +227,7 @@
       flex-wrap: wrap;
     }
 
+    /* ========== CSS: 버튼 ========== */
     button {
       background: rgba(0,0,0,0.3);
       border: 3px solid #FFFFFF;
@@ -268,20 +267,23 @@
       .lobby-container { grid-template-columns: 1fr; }
       .backstep-title { font-size: 3rem; letter-spacing: 8px; }
       .room-code { font-size: 2.5rem; letter-spacing: 8px; }
-      .halftone-top-left { display: none; }
-      .halftone-bottom-right { display: none; }
+      .halftone-fist, .halftone-silhouette { display: none; }
     }
   </style>
 </head>
 <body>
+  <!-- CSS: 대각선 선 -->
   <div class="line-top-left"></div>
   <div class="line-bottom-right"></div>
-  <div class="halftone-top-left"></div>
-  <div class="halftone-bottom-right"></div>
+
+  <!-- 이미지 에셋: SVG -->
+  <img class="halftone-fist" src="/halftone-fist.svg" alt="fist halftone" />
+  <img class="halftone-silhouette" src="/halftone-silhouette.svg" alt="silhouette halftone" />
 
   <div class="host-wrapper">
     <div class="host-container">
       <div class="main-content">
+        <!-- CSS: 로고 -->
         <div class="backstep-title">BACKSTAB</div>
         <div class="subtitle-box">
           <div class="subtitle-text">방관 놀기</div>
@@ -289,17 +291,13 @@
 
         <!-- 로비 화면 -->
         <div id="lobbyScreen" class="lobby-container">
-          <!-- 왼쪽: 방 정보 -->
           <div class="lobby-left">
             <div class="section-label">방 번호</div>
             <div class="room-code" id="roomCodeDisplay">----</div>
             <div class="player-count" id="playerCountDisplay">0/8 명</div>
-            <div class="desc-text">
-              플레이어는 /player에서<br>이 코드로 입장합니다
-            </div>
+            <div class="desc-text">플레이어는 /player에서<br>이 코드로 입장합니다</div>
           </div>
 
-          <!-- 오른쪽: 플레이어 목록 및 시작 -->
           <div class="lobby-right">
             <div class="section-label">입장한 플레이어</div>
             <ul class="player-list" id="lobbyPlayerList"></ul>
@@ -313,7 +311,6 @@
           </div>
         </div>
 
-        <!-- 게임 중 화면 (숨김) -->
         <div id="gameSection"></div>
       </div>
     </div>
