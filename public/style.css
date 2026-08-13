@@ -52,13 +52,15 @@
 
   /* Landing hero palette (Figma noir-pop) */
   --hero-burgundy-gradient: linear-gradient(135deg, #5D2E2E 0%, #8B4545 50%, #5D2E2E 100%);
+  --hero-burgundy-gradient-deep: linear-gradient(135deg, #2A1414 0%, #4A2323 50%, #2A1414 100%);
 }
 
 * { box-sizing: border-box; }
 body {
   margin: 0;
   font-family: "Pretendard", "Malgun Gothic", system-ui, sans-serif;
-  background: #12131a;
+  background: var(--hero-burgundy-gradient);
+  background-attachment: fixed;
   color: #f2f2f5;
   min-height: 100vh;
 }
@@ -67,12 +69,13 @@ body {
   margin: 0 auto;
   padding: 24px 16px 64px;
 }
-h1 { font-size: 1.4rem; margin-bottom: 4px; }
-h2 { font-size: 1.1rem; color: #aeb3ff; }
-.muted { color: #9a9aa8; font-size: 0.9rem; }
+h1 { font-size: 1.4rem; margin-bottom: 4px; color: #fff; }
+h2 { font-size: 1.1rem; color: #FFD700; }
+.muted { color: #d8c9c9; font-size: 0.9rem; }
 .card {
-  background: #1c1d29;
-  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 3px solid #fff;
+  border-radius: 15px;
   padding: 16px;
   margin: 12px 0;
 }
@@ -80,20 +83,24 @@ input, button {
   font-size: 1rem;
   padding: 10px 14px;
   border-radius: 8px;
-  border: 1px solid #33344a;
-  background: #22233066;
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  background: rgba(0, 0, 0, 0.35);
 }
 input { width: 100%; color: #fff; margin-bottom: 8px; }
 button {
-  background: #5865f2;
+  background: rgba(0, 0, 0, 0.3);
   color: white;
-  border: none;
+  border: 3px solid #fff;
+  border-radius: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
   cursor: pointer;
   width: 100%;
 }
-button:disabled { background: #33344a; cursor: not-allowed; }
-button.secondary { background: #33344a; margin-top: 8px; }
-.error { color: #ff6b6b; min-height: 1.2em; font-size: 0.9rem; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.secondary { border-color: rgba(255, 255, 255, 0.4); }
+.error { color: #FF6B6B; min-height: 1.2em; font-size: 0.9rem; }
 .player-list { list-style: none; padding: 0; margin: 0; }
 .player-list li {
   display: flex;
@@ -101,15 +108,17 @@ button.secondary { background: #33344a; margin-top: 8px; }
   padding: 8px 10px;
   border-radius: 8px;
   margin-bottom: 6px;
-  background: #22233066;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #fff;
 }
-.player-list li.selected { outline: 2px solid #5865f2; }
+.player-list li.selected { outline: 2px solid #FFD700; }
 .player-list li.dead { opacity: 0.4; text-decoration: line-through; }
 .player-list li button { width: auto; padding: 4px 10px; font-size: 0.85rem; }
-.timer { font-size: 2rem; font-weight: 700; text-align: center; margin: 8px 0; }
-.role-name { font-size: 1.6rem; font-weight: 700; }
-.hp-bar { height: 10px; border-radius: 6px; background: #33344a; overflow: hidden; margin-top: 4px; }
-.hp-bar > div { height: 100%; background: #f25858; }
+.timer { font-size: 2rem; font-weight: 700; text-align: center; margin: 8px 0; color: #fff; }
+.role-name { font-size: 1.6rem; font-weight: 700; color: #fff; }
+.hp-bar { height: 10px; border-radius: 6px; background: rgba(0, 0, 0, 0.4); overflow: hidden; margin-top: 4px; border: 1px solid rgba(255, 255, 255, 0.3); }
+.hp-bar > div { height: 100%; background: #FF6B6B; }
 
 /* TV screen */
 .tv body, .tv .screen { max-width: none; }
@@ -309,12 +318,12 @@ button.secondary { background: #33344a; margin-top: 8px; }
   gap: 12px;
   padding: 12px;
   box-sizing: border-box;
-  background: var(--color-bg);
-  transition: background-color 500ms ease-out;
+  background: var(--hero-burgundy-gradient);
+  transition: background 500ms ease-out;
 }
 
 .host-layout[data-phase="night"] {
-  background: var(--color-bg-deep);
+  background: var(--hero-burgundy-gradient-deep);
 }
 
 .host-layout[data-phase="night"] .tv-upper {
@@ -325,7 +334,7 @@ button.secondary { background: #33344a; margin-top: 8px; }
 .host-layout[data-phase="day_reveal"],
 .host-layout[data-phase="day_discussion"],
 .host-layout[data-phase="day_vote"] {
-  background: var(--color-bg);
+  background: var(--hero-burgundy-gradient);
 }
 
 .host-layout[data-phase="day_reveal"] .tv-upper {
