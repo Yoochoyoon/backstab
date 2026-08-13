@@ -1,5 +1,6 @@
 const socket = io();
 let players = [];
+let currentRoomCode = "";
 
 const MAX_HP_BY_ROLE = {
   boss: 5,
@@ -12,10 +13,22 @@ function getMaxHpForRole(role) {
   return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
 }
 
-function getHpPercentage(hp, role) {
-  const maxHp = getMaxHpForRole(role);
-  return Math.max(0, (hp / maxHp) * 100);
+// 보스 카드/플레이어 카드 양쪽에서 공용으로 쓰는 HP 조각(pip) 렌더러.
+function renderPipBar(container, hp, maxHp, colorClass) {
+  container.innerHTML = "";
+  for (let i = 0; i < maxHp; i++) {
+    const pip = document.createElement("div");
+    pip.className = `hp-pip ${colorClass}` + (i < hp ? " filled" : "");
+    container.appendChild(pip);
+  }
 }
+
+const PHASE_ICON_MAP = {
+  night: "night",
+  day_reveal: "discussion",
+  day_discussion: "discussion",
+  day_vote: "vote",
+};
 
 const createSection = document.getElementById("createSection");
 const lobbySection = document.getElementById("lobbySection");
@@ -24,9 +37,10 @@ const errorLabel = document.getElementById("errorLabel");
 
 document.getElementById("createRoomBtn").addEventListener("click", () => {
   socket.emit("host:create_room", {}, (res) => {
+    currentRoomCode = res.code;
     document.getElementById("roomCode").textContent = res.code;
     createSection.style.display = "none";
-    lobbySection.style.display = "block";
+    lobbySection.style.display = "flex";
   });
 });
 
@@ -44,17 +58,6 @@ document.getElementById("extendBtn").addEventListener("click", () => {
   socket.emit("host:extend_phase", { extraMs: 60_000 });
 });
 
-function renderPlayerList(el, players, { showHp } = { showHp: false }) {
-  el.innerHTML = "";
-  for (const p of players) {
-    const li = document.createElement("li");
-    if (!p.alive) li.classList.add("dead");
-    li.dataset.initial = p.nickname.charAt(0).toUpperCase();
-    li.textContent = showHp ? `${p.nickname} (HP ${p.hp})` : p.nickname;
-    el.appendChild(li);
-  }
-}
-
 function makePlayerCard(p) {
   const li = document.createElement("li");
   if (!p.alive) li.classList.add("dead");
@@ -62,7 +65,7 @@ function makePlayerCard(p) {
   return li;
 }
 
-// 6명 미만이면 한 줄, 6명부터는 위/아래로 균등 분배(홀수면 아래가 하나 더).
+// 항상 위/아래로 균등 분배(홀수면 아래가 하나 더) — 모바일·데스크톱 공통.
 // 각 줄은 중앙 정렬이라, 안에서 가운데 카드부터 바깥쪽으로 팝인 애니메이션이 퍼진다.
 function renderLobbyGrid(players) {
   const top = document.getElementById("lobbyRowTop");
@@ -71,7 +74,7 @@ function renderLobbyGrid(players) {
   bottom.innerHTML = "";
 
   const n = players.length;
-  const topCount = n < 6 ? n : Math.floor(n / 2);
+  const topCount = Math.floor(n / 2);
   players.forEach((p, i) => {
     const row = i < topCount ? top : bottom;
     row.appendChild(makePlayerCard(p));
@@ -92,19 +95,25 @@ function renderLobbyGrid(players) {
 function renderGrid() {
   const grid = document.getElementById("playerGrid");
   grid.innerHTML = "";
+  const playerCount = players.length || MIN_PLAYERS;
+  grid.style.setProperty("--player-count", playerCount);
+  grid.style.setProperty("--player-count-half", Math.ceil(playerCount / 2));
   for (const p of players) {
     const div = document.createElement("div");
-    div.className = "player-file-card tv-player-card";
+    div.className = "hp-monitor-card";
     if (p.alive) div.classList.add("is-alive");
     if (!p.alive) div.classList.add("is-dead");
     if (p.role === "boss") div.classList.add("is-boss");
-    const hpPercent = getHpPercentage(p.hp, p.role);
     const maxHp = getMaxHpForRole(p.role);
-    div.innerHTML = `<div class="tv-player-name">${p.nickname}${p.alive ? "" : " (사망)"}</div>
-      <div style="background:#333; height:8px; margin-top:8px; border-radius:2px;">
-        <div style="background:#e74c3c; height:100%; width:${hpPercent}%; border-radius:2px;"></div>
-      </div>
-      <div class="tv-player-hp">HP ${p.hp}/${maxHp}</div>`;
+    const initial = p.nickname.charAt(0).toUpperCase();
+    // 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정
+    div.innerHTML = `<div class="hp-monitor-card__avatar">${initial}</div>
+      <div class="hp-monitor-card__body">
+        <div class="hp-monitor-card__name">${p.nickname}${p.alive ? "" : " (사망)"}</div>
+        <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
+        <div class="hp-monitor-card__pips"></div>
+      </div>`;
+    renderPipBar(div.querySelector(".hp-monitor-card__pips"), p.hp, maxHp, "hp-pip--red");
     grid.appendChild(div);
   }
 }
@@ -119,10 +128,9 @@ function showResult(title, damageLog, note) {
 socket.on("state:players", ({ players: ps }) => {
   players = ps;
   renderLobbyGrid(players);
-  renderPlayerList(document.getElementById("gamePlayerList"), players, { showHp: true });
   renderGrid();
 
-  // Boss HP critical status check
+  // Boss HP critical status check + pip bar
   const boss = players.find(p => p.role === "boss");
   const bossBanner = document.getElementById("bossBanner");
   if (boss && bossBanner) {
@@ -131,6 +139,9 @@ socket.on("state:players", ({ players: ps }) => {
     } else {
       bossBanner.classList.remove("is-critical");
     }
+    const bossMaxHp = getMaxHpForRole("boss");
+    document.getElementById("bossHpText").textContent = `HP ${boss.hp}/${bossMaxHp}`;
+    renderPipBar(document.getElementById("bossHpPips"), boss.hp, bossMaxHp, "hp-pip--yellow");
   }
 
   const validCount = players.length >= MIN_PLAYERS && players.length <= MAX_PLAYERS;
@@ -141,8 +152,9 @@ socket.on("state:players", ({ players: ps }) => {
 });
 
 socket.on("public:boss_revealed", ({ nickname }) => {
-  document.getElementById("bossBanner").style.display = "block";
+  document.getElementById("bossBanner").style.display = "flex";
   document.getElementById("bossName").textContent = nickname;
+  document.getElementById("bossAvatar").textContent = nickname.charAt(0).toUpperCase();
 });
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
@@ -150,6 +162,10 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   if (gameShell) {
     gameShell.setAttribute("data-phase", phase);
   }
+
+  document.querySelectorAll(".phase-icon").forEach((el) => {
+    el.classList.toggle("is-active", el.dataset.icon === PHASE_ICON_MAP[phase]);
+  });
 
   errorLabel.textContent = "";
   document.getElementById("winnerLabel").style.display = "none";
@@ -159,7 +175,8 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
     return;
   }
   lobbySection.style.display = "none";
-  gameControlSection.style.display = "block";
+  gameControlSection.style.display = "flex";
+  document.getElementById("caseNumber").textContent = `#${currentRoomCode}`;
   if (phase === "game_over") {
     document.getElementById("phaseLabel").textContent = "게임 종료";
     document.getElementById("timerLabel").textContent = "";

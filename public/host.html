@@ -34,30 +34,50 @@
   <!-- 게임 진행 화면 -->
   <section id="gameControlSection" class="host-layout" style="display: none" data-phase="lobby">
     <div class="tv-upper">
-      <header class="case-header">
-        <span class="case-header__label">사건 기록 · BACKSTAB</span>
-        <h1>진행 상황</h1>
-        <div class="phase-status">
-          <span class="phase-label" id="phaseLabel">대기실</span>
-          <span class="countdown" id="timerLabel"></span>
-        </div>
-      </header>
+      <div class="progress-logo">BACKSTAB</div>
 
-      <div class="boss-case-file" id="bossBanner" style="display: none">
-        <span class="boss-case-file__label">지명수배 · 보스</span>
-        <div class="boss-case-file__name" id="bossName"></div>
-        <div class="boss-case-file__hp">위험 상태 감시 중</div>
+      <div class="top-line">
+        <div class="case-badge">
+          <span class="case-badge__label">사건 번호</span>
+          <span class="case-badge__case-word">CASE</span>
+          <span class="case-badge__value" id="caseNumber">#----</span>
+        </div>
+
+        <div class="phase-bar">
+          <span class="phase-bar__label" id="phaseLabel">대기실</span>
+          <div class="phase-icons">
+            <span class="phase-icon" data-icon="night">🌙</span>
+            <span class="phase-icon" data-icon="discussion">💬</span>
+            <span class="phase-icon" data-icon="vote">☑️</span>
+          </div>
+        </div>
+
+        <div class="progress-timer" id="timerLabel">--:--</div>
       </div>
 
-      <div class="player-file-grid" id="playerGrid"></div>
+      <div class="hp-monitor">
+        <span class="hp-monitor__label">참가자 HP 모니터</span>
+        <div class="hp-monitor__grid" id="playerGrid"></div>
+      </div>
+
+      <div class="boss-sticker" id="bossBanner" style="display: none">
+        <div class="boss-sticker__avatar" id="bossAvatar"></div>
+        <div class="boss-sticker__body">
+          <span class="boss-sticker__label">보스</span>
+          <div class="boss-sticker__name" id="bossName"></div>
+          <div class="boss-sticker__hp-text" id="bossHpText"></div>
+          <div class="boss-sticker__pips" id="bossHpPips"></div>
+        </div>
+      </div>
     </div>
 
     <div class="control-lower">
       <div id="winnerLabel" style="display: none"></div>
       <div id="resultLog"></div>
-      <ul class="player-list" id="gamePlayerList"></ul>
-      <button id="advanceBtn">다음 단계로 (강제 진행)</button>
-      <button id="extendBtn">시간 연장</button>
+      <div class="control-buttons">
+        <button id="extendBtn" class="btn-extend">시간 연장</button>
+        <button id="advanceBtn" class="btn-advance">다음 단계로 (강제 진행)</button>
+      </div>
     </div>
   </section>
 

@@ -80,7 +80,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
     }
     errorLabel.textContent = "";
     joinSection.style.display = "none";
-    waitingSection.style.display = "block";
+    waitingSection.style.display = "flex";
   });
 });
 
@@ -128,7 +128,10 @@ socket.on("player:night_options", (options) => {
   if (currentPhase === "night") renderActionChoices();
 });
 
-socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
+// state:phase_changed(실시간)와 state:full_sync(재접속 복원) 둘 다 같은 화면
+// 갱신 로직을 타야 해서 함수로 뽑아뒀다 — 재접속 시 이 호출이 빠지면 화면이
+// 대기 화면에 멈춘 채 아무것도 안 보이는 버그가 생긴다.
+function applyPhase(phase, round, phaseEndsAt) {
   currentPhase = phase;
   currentRound = round;
   selectedTargetId = null;
@@ -191,6 +194,10 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   }
 
   updateBeginnerHint(phase, round);
+}
+
+socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
+  applyPhase(phase, round, phaseEndsAt);
 });
 
 function updateBeginnerHint(phase, round) {
@@ -218,20 +225,21 @@ socket.on("state:vote_result", ({ damageLog, tie, tiedTargetIds, finalTie }) => 
 });
 
 socket.on("state:full_sync", (data) => {
-  // 게임 상태 복원
+  // 재접속한 플레이어의 화면을 현재 게임 상태로 복원한다.
   players = data.players;
-  myself = players.find((p) => p.id === socket.id) || myself;
+  myself = players.find((p) => p.id === myId) || myself;
 
-  // 게임 진행 중이면 UI 업데이트
-  if (gameSection.style.display !== "none" && myself) {
-    document.getElementById("nicknameLabel").textContent = myself.nickname;
-
-    if (myself.role) {
-      const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
-      document.getElementById("roleLabel").textContent = roleNames[myself.role] || myself.role;
-      document.getElementById("hpLabel").textContent = `HP ${myself.hp}/5`;
-    }
+  if (myself?.role) {
+    myRole = myself.role;
+    const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
+    document.getElementById("roleName").textContent = roleNames[myRole] ?? myRole;
+    document.getElementById("hpLabel").textContent = `HP ${myself.hp}`;
+    document.getElementById("hpBarFill").style.width = "100%";
+    roleCard.style.display = "block";
   }
+  waitingSection.style.display = "none";
+
+  applyPhase(data.phase, data.round, data.phaseEndsAt);
 });
 
 function showResult(title, damageLog, note) {
