@@ -230,8 +230,20 @@ button.secondary { background: #33344a; margin-top: 8px; }
   min-width: 140px;
 }
 
+@keyframes timer-warning {
+  0%, 100% {
+    color: var(--color-warning);
+    text-shadow: none;
+  }
+  50% {
+    color: var(--color-gold-bright);
+    text-shadow: 0 0 8px rgba(227, 196, 119, 0.3);
+  }
+}
+
 .countdown.is-warning {
   color: var(--color-warning);
+  animation: timer-warning 600ms ease-in-out infinite;
 }
 
 .countdown.is-critical {
@@ -320,10 +332,20 @@ button.secondary { background: #33344a; margin-top: 8px; }
   border-color: var(--color-border);
 }
 
+@keyframes target-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(195, 58, 63, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(195, 58, 63, 0.22);
+  }
+}
+
 .player-file-card.is-targeted {
   border-color: var(--color-crimson-bright);
   background: rgba(195, 58, 63, 0.12);
   box-shadow: 0 0 0 3px rgba(195, 58, 63, 0.2);
+  animation: target-pulse 2.2s ease-in-out infinite;
 }
 
 .player-file-card.is-boss {
@@ -341,4 +363,14 @@ button.secondary { background: #33344a; margin-top: 8px; }
   font-size: 0.85rem;
   color: var(--color-text-muted);
   margin-top: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
