@@ -59,7 +59,7 @@ function renderGrid() {
   grid.innerHTML = "";
   for (const p of players) {
     const div = document.createElement("div");
-    div.className = "player-file-card";
+    div.className = "player-file-card tv-player-card";
     if (p.alive) div.classList.add("is-alive");
     if (!p.alive) div.classList.add("is-dead");
     if (p.role === "boss") div.classList.add("is-boss");
@@ -86,6 +86,18 @@ socket.on("state:players", ({ players: ps }) => {
   renderPlayerList(document.getElementById("playerList"), players);
   renderPlayerList(document.getElementById("gamePlayerList"), players, { showHp: true });
   renderGrid();
+
+  // Boss HP critical status check
+  const boss = players.find(p => p.role === "boss");
+  const bossBanner = document.getElementById("bossBanner");
+  if (boss && bossBanner) {
+    if (boss.hp <= 1) {
+      bossBanner.classList.add("is-critical");
+    } else {
+      bossBanner.classList.remove("is-critical");
+    }
+  }
+
   const validCount = players.length >= MIN_PLAYERS && players.length <= MAX_PLAYERS;
   document.getElementById("startBtn").disabled = !validCount;
   document.getElementById("startBtn").textContent = validCount

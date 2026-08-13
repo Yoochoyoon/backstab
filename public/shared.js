@@ -28,10 +28,27 @@ function startCountdown(phaseEndsAt, el) {
   if (window.__countdownTimer) clearInterval(window.__countdownTimer);
   if (!phaseEndsAt) {
     el.textContent = "--:--";
+    el.classList.remove("is-warning", "is-critical");
     return;
   }
   const tick = () => {
-    el.textContent = formatTimer(phaseEndsAt - Date.now());
+    const ms = phaseEndsAt - Date.now();
+    el.textContent = formatTimer(ms);
+
+    // 10초 이하: 긴급 (crimson-bright)
+    if (ms <= 10000) {
+      el.classList.add("is-critical");
+      el.classList.remove("is-warning");
+    }
+    // 30초 이하: 경고 (warning)
+    else if (ms <= 30000) {
+      el.classList.add("is-warning");
+      el.classList.remove("is-critical");
+    }
+    // 30초 초과: 정상
+    else {
+      el.classList.remove("is-warning", "is-critical");
+    }
   };
   tick();
   window.__countdownTimer = setInterval(tick, 250);
