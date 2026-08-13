@@ -13,6 +13,7 @@ const httpServer = createServer(app);
 const io = new Server(httpServer);
 
 app.use(express.static(publicDir));
+app.get("/", (_req, res) => res.redirect("/host"));
 app.get("/player", (_req, res) => res.sendFile(path.join(publicDir, "player.html")));
 app.get("/tv", (_req, res) => res.sendFile(path.join(publicDir, "tv.html")));
 app.get("/host", (_req, res) => res.sendFile(path.join(publicDir, "host.html")));
