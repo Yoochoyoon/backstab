@@ -1,4 +1,4 @@
-# 집중표적게임
+# Backstab
 
 4가지 역할(보스·경호원·스파이·배신자)이 수행하는 6~10인 소셜 디덕션 파티 게임. 기획 문서는 `docs/` 폴더 참고. MVP는 핵심 게임루프를 완성했고, Phase 2 기능 중 인원수 가변·재접속 자동 복귀·UI/UX 개선이 진행 중입니다.
 
@@ -26,7 +26,7 @@ npm run dev
 
 ### 라이브 배포
 
-https://jipjung-game.onrender.com
+https://backstab.onrender.com
 - 진행자: `/host`
 - 플레이어: `/player`
 - TV: `/tv`
