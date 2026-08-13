@@ -49,8 +49,43 @@ function renderPlayerList(el, players, { showHp } = { showHp: false }) {
   for (const p of players) {
     const li = document.createElement("li");
     if (!p.alive) li.classList.add("dead");
+    li.dataset.initial = p.nickname.charAt(0).toUpperCase();
     li.textContent = showHp ? `${p.nickname} (HP ${p.hp})` : p.nickname;
     el.appendChild(li);
+  }
+}
+
+function makePlayerCard(p) {
+  const li = document.createElement("li");
+  if (!p.alive) li.classList.add("dead");
+  li.textContent = p.nickname;
+  return li;
+}
+
+// 6명 미만이면 한 줄, 6명부터는 위/아래로 균등 분배(홀수면 아래가 하나 더).
+// 각 줄은 중앙 정렬이라, 안에서 가운데 카드부터 바깥쪽으로 팝인 애니메이션이 퍼진다.
+function renderLobbyGrid(players) {
+  const top = document.getElementById("lobbyRowTop");
+  const bottom = document.getElementById("lobbyRowBottom");
+  top.innerHTML = "";
+  bottom.innerHTML = "";
+
+  const n = players.length;
+  const topCount = n < 6 ? n : Math.floor(n / 2);
+  players.forEach((p, i) => {
+    const row = i < topCount ? top : bottom;
+    row.appendChild(makePlayerCard(p));
+  });
+
+  const STAGGER_MS = 90;
+  for (const row of [top, bottom]) {
+    const items = [...row.children];
+    const center = (items.length - 1) / 2;
+    items.forEach((li, idx) => {
+      const distance = Math.abs(idx - center);
+      li.style.animationDelay = `${distance * STAGGER_MS}ms`;
+      li.classList.add("lobby-card-enter");
+    });
   }
 }
 
@@ -83,7 +118,7 @@ function showResult(title, damageLog, note) {
 
 socket.on("state:players", ({ players: ps }) => {
   players = ps;
-  renderPlayerList(document.getElementById("playerList"), players);
+  renderLobbyGrid(players);
   renderPlayerList(document.getElementById("gamePlayerList"), players, { showHp: true });
   renderGrid();
 

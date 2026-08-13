@@ -8,7 +8,7 @@
 </head>
 <body>
   <!-- 방 만들기 전: Figma 랜딩 화면 -->
-  <section id="createSection" class="hero">
+  <section id="createSection" class="hero hero--stack">
     <div class="hero-card"></div>
     <img class="hero-fist" src="/assets/fist.webp" alt="" />
     <h1 class="hero-title">BACKSTAB</h1>
@@ -16,15 +16,19 @@
   </section>
 
   <!-- 방 생성 후 대기실 -->
-  <section id="lobbySection" class="lobby-wait" style="display: none">
-    <div class="lobby-wait__panel">
-      <span class="lobby-wait__label">방 번호</span>
-      <div class="lobby-wait__code" id="roomCode">----</div>
-      <span class="lobby-wait__label">입장한 플레이어</span>
-      <ul class="player-list" id="playerList"></ul>
-      <button id="startBtn" disabled>시작하기</button>
-      <p class="error" id="errorLabel"></p>
+  <section id="lobbySection" class="hero lobby-hero" style="display: none">
+    <div class="hero-card"></div>
+    <h2 class="lobby-title">입장한 플레이어</h2>
+    <div class="lobby-grid" id="playerList">
+      <ul class="lobby-row" id="lobbyRowTop"></ul>
+      <ul class="lobby-row" id="lobbyRowBottom"></ul>
     </div>
+    <div class="lobby-code">
+      <span class="lobby-code__label">방코드</span>
+      <span class="lobby-code__value" id="roomCode">----</span>
+    </div>
+    <button id="startBtn" class="lobby-start-btn" disabled>시작</button>
+    <p class="error lobby-error" id="errorLabel"></p>
   </section>
 
   <!-- 게임 진행 화면 -->

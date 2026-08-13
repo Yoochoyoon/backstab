@@ -258,6 +258,7 @@ export function registerSocketHandlers(io: Server) {
         if (room.players.length >= MAX_PLAYERS) return callback({ ok: false, error: `방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명).` });
         const nickname = (payload.nickname ?? "").trim();
         if (!nickname) return callback({ ok: false, error: "닉네임을 입력해주세요." });
+        if (nickname.length > 7) return callback({ ok: false, error: "닉네임은 최대 7자입니다." });
         if (room.players.some((p) => p.nickname === nickname)) {
           return callback({ ok: false, error: "이미 사용 중인 닉네임입니다." });
         }
