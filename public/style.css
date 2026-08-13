@@ -243,6 +243,112 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   background: #1a1a1a;
 }
 
+/* 플레이어용 방코드/이름 입력 화면 (Figma "Android Compact - 1") — 랜딩과 같은
+   .hero/.hero--stack 배경 프레임을 재사용하고, 입력 필드만 이 화면 전용이다. */
+.join-hero {
+  gap: 2.4vh;
+  padding-top: 8vh;
+  padding-bottom: 8vh;
+}
+
+.join-title {
+  font-size: min(6.4vh, 11cqw);
+}
+
+.join-field {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vh;
+  width: min(90cqw, 420px);
+}
+
+.join-label {
+  color: #fff;
+  font-style: italic;
+  font-weight: 500;
+  font-size: min(2.2vh, 4.6cqw);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0.25vh 0 #000;
+}
+
+.join-input {
+  width: 100%;
+  min-height: 52px;
+  margin-bottom: 0;
+  text-align: center;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 600;
+  font-size: min(2.4vh, 4.4cqw);
+  letter-spacing: 0.08em;
+  outline: none;
+}
+
+.join-input::placeholder {
+  color: #8a8a8a;
+}
+
+.join-input--pill {
+  background: #fff;
+  color: #000;
+  border: 0.5vh solid #000;
+  border-radius: 999px;
+  padding: 1.4vh 1.6vh;
+}
+
+.join-input--pill:focus {
+  border-color: #FFE500;
+}
+
+.join-input--underline {
+  background: transparent;
+  color: #fff;
+  border: none;
+  border-bottom: 0.6vh solid #000;
+  border-radius: 0;
+  padding: 1vh 0.4vh;
+}
+
+.join-input--underline::placeholder {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.join-input--underline:focus {
+  border-bottom-color: #FFE500;
+}
+
+.join-start-btn {
+  position: relative;
+  z-index: 4;
+  width: auto;
+  min-height: 52px;
+  background: #000;
+  border: 0.5vh solid #FFE500;
+  border-radius: 1.2vh;
+  box-shadow: 0 0.4vh 0 #FFE500;
+  color: #FFE500;
+  font-weight: 900;
+  font-size: min(2.6vh, 4.8cqw);
+  letter-spacing: 0.08em;
+  padding: 1.4vh 4vh;
+  cursor: pointer;
+}
+
+.join-start-btn:hover:not(:disabled) {
+  background: #FFE500;
+  color: #000;
+}
+
+.join-error {
+  position: relative;
+  z-index: 4;
+  color: #FF6B6B;
+  font-weight: 600;
+  text-align: center;
+}
+
 /* 대기실 화면 (Figma "TV - 2": 입장한 플레이어) — 랜딩과 같은 회전 카드 배경을 쓰되
    콘텐츠는 중앙 정렬 대신 모서리에 배치한다. */
 /* .hero already provides the frame (position/overflow/padding); the lobby only

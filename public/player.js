@@ -9,7 +9,9 @@ window.addEventListener("load", () => {
     socket.emit("player:reconnect", { sessionId, roomCode }, (res) => {
       if (res.ok) {
         console.log("재연결 성공");
-        // 상태는 state:full_sync 이벤트로 받음
+        joinSection.style.display = "none";
+        document.getElementById("postJoinScreen").style.display = "block";
+        // 나머지 화면 상태는 state:full_sync 이벤트로 받음
       } else {
         console.log("재연결 실패:", res.error);
         // 세션 정보 삭제 (새로 입장해야 함)
@@ -78,6 +80,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
     }
     errorLabel.textContent = "";
     joinSection.style.display = "none";
+    document.getElementById("postJoinScreen").style.display = "block";
     waitingSection.style.display = "block";
   });
 });

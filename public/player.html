@@ -7,16 +7,26 @@
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <div class="screen">
-    <h1>Backstab</h1>
+  <!-- 방 코드 / 닉네임 입력 화면 -->
+  <section id="joinSection" class="hero hero--stack join-hero">
+    <div class="hero-card"></div>
+    <h1 class="hero-title join-title">BACKSTAB</h1>
 
-    <div id="joinSection" class="card">
-      <input id="codeInput" placeholder="방 코드 (4자리)" maxlength="4" style="text-transform:uppercase" />
-      <input id="nicknameInput" placeholder="닉네임 (최대 7자)" maxlength="7" />
-      <button id="joinBtn">입장하기</button>
-      <p class="error" id="errorLabel"></p>
+    <div class="join-field">
+      <label class="join-label" for="codeInput">방 코드를 입력해주세요.</label>
+      <input id="codeInput" class="join-input join-input--pill" placeholder="코드 입력" maxlength="4" style="text-transform:uppercase" />
     </div>
 
+    <div class="join-field">
+      <label class="join-label" for="nicknameInput">이름을 입력해주세요. (최대 7자)</label>
+      <input id="nicknameInput" class="join-input join-input--underline" placeholder="이름 입력" maxlength="7" />
+    </div>
+
+    <button id="joinBtn" class="join-start-btn">입장하기</button>
+    <p class="error join-error" id="errorLabel"></p>
+  </section>
+
+  <div class="screen" id="postJoinScreen" style="display:none">
     <div id="waitingSection" class="card" style="display:none">
       <p>대기 중... 진행자가 시작하면 자동으로 시작됩니다.</p>
     </div>
