@@ -21,5 +21,5 @@ registerSocketHandlers(io);
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 3000;
 httpServer.listen(PORT, () => {
-  console.log(`집중표적게임 서버 실행 중: http://localhost:${PORT}`);
+  console.log(`Backstab 서버 실행 중: http://localhost:${PORT}`);
 });
