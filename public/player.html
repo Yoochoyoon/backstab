@@ -26,11 +26,18 @@
     <p class="error join-error" id="errorLabel"></p>
   </section>
 
-  <div class="screen" id="postJoinScreen" style="display:none">
-    <div id="waitingSection" class="card" style="display:none">
-      <p>대기 중... 진행자가 시작하면 자동으로 시작됩니다.</p>
+  <!-- 방 코드/닉네임 제출 후, 게임이 시작되기 전까지 보여주는 대기 화면 -->
+  <section id="waitingSection" class="hero hero--stack join-hero" style="display:none">
+    <div class="hero-card"></div>
+    <h1 class="hero-title join-title">BACKSTAB</h1>
+    <p class="waiting-message">대기중<br><br>진행자가 시작하면<br>자동으로 시작됩니다.</p>
+    <div class="waiting-list-panel">
+      <span class="waiting-list-label">대기실</span>
+      <ul class="waiting-list" id="waitingPlayerList"></ul>
     </div>
+  </section>
 
+  <div class="screen" id="postJoinScreen" style="display:none">
     <div id="bossBanner" class="card" style="display:none; border:1px solid #f2c94c;">
       <span class="muted">보스 공개</span>
       <div id="bossName" style="font-size:1.2rem;font-weight:700;"></div>

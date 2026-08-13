@@ -349,6 +349,64 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   text-align: center;
 }
 
+/* 플레이어용 대기 화면 (Figma "Android Compact - 2") — join-hero와 같은 배경을
+   재사용하고, 대기 문구와 참가자 목록만 이 화면 전용이다. */
+.waiting-message {
+  position: relative;
+  z-index: 4;
+  margin: 0;
+  color: #fff;
+  font-style: italic;
+  font-weight: 500;
+  font-size: min(2.4vh, 4.8cqw);
+  line-height: 1.6;
+  text-align: center;
+  letter-spacing: 0.05em;
+  text-shadow: 0 0.25vh 0 #000;
+}
+
+.waiting-list-panel {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1vh;
+  width: min(90cqw, 420px);
+}
+
+.waiting-list-label {
+  color: #fff;
+  font-weight: 700;
+  font-size: min(2.2vh, 4.6cqw);
+  letter-spacing: 0.08em;
+  text-shadow: 0 0.2vh 0 #000;
+}
+
+.waiting-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  max-height: 36vh;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.45);
+  border: 0.5vh solid #000;
+  border-radius: 1.6vh;
+}
+
+.waiting-list li {
+  padding: 1.4vh 1.6vh;
+  color: #fff;
+  font-weight: 600;
+  font-size: min(2vh, 4vw);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.waiting-list li:last-child {
+  border-bottom: none;
+}
+
 /* 대기실 화면 (Figma "TV - 2": 입장한 플레이어) — 랜딩과 같은 회전 카드 배경을 쓰되
    콘텐츠는 중앙 정렬 대신 모서리에 배치한다. */
 /* .hero already provides the frame (position/overflow/padding); the lobby only

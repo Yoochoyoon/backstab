@@ -80,13 +80,23 @@ document.getElementById("joinBtn").addEventListener("click", () => {
     }
     errorLabel.textContent = "";
     joinSection.style.display = "none";
-    document.getElementById("postJoinScreen").style.display = "block";
     waitingSection.style.display = "block";
   });
 });
 
+function renderWaitingList(list) {
+  const el = document.getElementById("waitingPlayerList");
+  el.innerHTML = "";
+  for (const p of list) {
+    const li = document.createElement("li");
+    li.textContent = p.nickname;
+    el.appendChild(li);
+  }
+}
+
 socket.on("state:players", (payload) => {
   players = payload.players;
+  if (currentPhase === "lobby") renderWaitingList(players);
   if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
 });
 
@@ -101,6 +111,7 @@ socket.on("player:role_assigned", ({ role, hp }) => {
   document.getElementById("roleName").textContent = roleNames[role] ?? role;
   document.getElementById("hpLabel").textContent = `HP ${hp}`;
   document.getElementById("hpBarFill").style.width = "100%";
+  document.getElementById("postJoinScreen").style.display = "block";
   roleCard.style.display = "block";
   waitingSection.style.display = "none";
 });
