@@ -26,6 +26,9 @@ function publicPlayers(room: Room) {
     nickname: p.nickname,
     hp: p.hp,
     alive: p.alive,
+    // 보스는 02역할.md 기준으로 유일하게 공개된 역할이라 role을 그대로 흘려보낸다.
+    // 다른 역할은 비공개라 undefined로 남긴다.
+    role: p.role === "boss" ? ("boss" as const) : undefined,
   }));
 }
 
@@ -305,9 +308,14 @@ export function registerSocketHandlers(io: Server) {
         socket.join(room.code);
 
         callback({ ok: true });
-        // 재연결한 플레이어에게만 현재 상태 전송
+        // 재연결한 플레이어에게만 현재 상태 전송.
+        // players는 publicPlayers()로 보내 다른 플레이어의 비공개 역할이 새어나가지
+        // 않게 하고(예전엔 room.players를 그대로 보내서 전원의 역할이 노출됐었다),
+        // 본인 역할은 myRole/myHp로 따로 보낸다.
         io.to(socket.id).emit("state:full_sync", {
-          players: room.players,
+          players: publicPlayers(room),
+          myRole: player.role,
+          myHp: player.hp,
           round: room.round,
           phase: room.phase,
           nightActions: room.nightActions,

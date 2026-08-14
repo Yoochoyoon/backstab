@@ -81,6 +81,11 @@ socket.on("connect", () => {
 });
 
 document.getElementById("joinBtn").addEventListener("click", () => {
+  // 새 방에 직접 입장하는 순간 이전 세션은 더 이상 유효하지 않다 — 지워두지 않으면
+  // 다음 새로고침 때 이 방이 아니라 이전(어쩌면 중단된) 방으로 자동 재접속돼버린다.
+  localStorage.removeItem("sessionId");
+  localStorage.removeItem("roomCode");
+
   const code = document.getElementById("codeInput").value.trim().toUpperCase();
   const nickname = document.getElementById("nicknameInput").value.trim();
   socket.emit("player:join_room", { code, nickname }, (res) => {
@@ -254,14 +259,26 @@ socket.on("state:full_sync", (data) => {
   players = data.players;
   myself = players.find((p) => p.id === myId) || myself;
 
-  if (myself?.role) {
-    myRole = myself.role;
+  // 본인 역할은 players 배열이 아니라 서버가 따로 보내주는 myRole/myHp로 받는다
+  // (players는 publicPlayers()라 보스가 아닌 이상 role이 비공개로 빠져 있다).
+  if (data.myRole) {
+    myRole = data.myRole;
     const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
     document.getElementById("roleName").textContent = roleNames[myRole] ?? myRole;
-    document.getElementById("hpLabel").textContent = `HP ${myself.hp}`;
+    document.getElementById("hpLabel").textContent = `HP ${data.myHp}`;
     document.getElementById("hpBarFill").style.width = "100%";
     roleCard.style.display = "block";
   }
+
+  // 재접속 시 이미 공개된 보스 정보를 복원한다 — player:role_assigned 흐름과 달리
+  // full_sync에는 이 처리가 아예 빠져 있어서, 새로고침한 클라이언트에는 보스 배너가
+  // 영원히 안 뜨는 버그가 있었다.
+  const bossPlayer = players.find((p) => p.role === "boss");
+  if (bossPlayer) {
+    bossBanner.style.display = "block";
+    document.getElementById("bossName").textContent = bossPlayer.nickname;
+  }
+
   waitingSection.style.display = "none";
 
   applyPhase(data.phase, data.round, data.phaseEndsAt);
