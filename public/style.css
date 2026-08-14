@@ -510,6 +510,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-size: min(6.4vw, 3.6vh);
   color: #FFE500;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
 
 .na-box__timer.is-warning {
@@ -538,6 +539,17 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .na-panel__sub {
   color: #ccc;
+}
+
+.na-winner {
+  color: #FFE500;
+  font-weight: 900;
+  font-size: min(6vw, 3.4vh);
+  text-align: center;
+  margin: 1.4vh 0;
+  text-shadow:
+    -0.16vh -0.16vh 0 #000, 0.16vh -0.16vh 0 #000,
+    -0.16vh  0.16vh 0 #000, 0.16vh  0.16vh 0 #000;
 }
 
 .na-plain-list {
@@ -694,6 +706,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   box-shadow: 0 0 0 0.25vh #FFE500;
 }
 
+/* 지목 확정 후: 노랑(선택) → 초록(확정)으로 바뀌어 "완료됐다"는 게 한눈에 보이게 한다. */
+.na-target-grid .hp-monitor-card.confirmed {
+  border-color: #2ECC71;
+  box-shadow: 0 0 0 0.25vh #2ECC71;
+}
+
 .na-target-card__tag {
   position: absolute;
   top: -1.2vh;
@@ -736,6 +754,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-size: min(4.6vw, 2.4vh);
   padding: 2.4vh 0;
   margin-top: 1vh;
+}
+
+/* 지목완료 상태 — 노랑(행동 유도) 대신 어두운 톤으로 "더 이상 할 게 없다"는 걸 보여준다. */
+.na-confirm-btn.is-submitted {
+  --btn-accent: #555;
+  cursor: default;
 }
 
 /* 대기실 화면 (Figma "TV - 2": 입장한 플레이어) — 랜딩과 같은 회전 카드 배경을 쓰되
@@ -1465,4 +1489,67 @@ button,
 .hp-monitor-card {
   min-height: 44px;
   min-width: 44px;
+}
+
+/* ============================================================
+   페이즈 전환 슬라이드 — 밤 시작/결과공개/투표시작/투표결과 등
+   페이즈가 바뀔 때마다 잠깐 떴다 사라지는 전체화면 안내.
+   호스트·플레이어 화면 둘 다에서 쓰고, 큐(shared.js의 createSlideQueue)로
+   연달아 오는 이벤트도 겹치지 않고 순서대로 보여준다.
+   ============================================================ */
+.phase-slide {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.94);
+  padding: 6vh 6vw;
+  box-sizing: border-box;
+  animation: phase-slide-in 260ms ease-out;
+}
+
+.phase-slide.is-leaving {
+  animation: phase-slide-out 260ms ease-in forwards;
+}
+
+@keyframes phase-slide-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes phase-slide-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+.phase-slide__content {
+  text-align: center;
+  max-width: 90vw;
+}
+
+.phase-slide__icon {
+  font-size: min(18vw, 14vh);
+  line-height: 1;
+  margin-bottom: 2vh;
+}
+
+.phase-slide__title {
+  color: #FFE500;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(9vw, 6vh);
+  letter-spacing: 0.02em;
+  text-shadow:
+    -0.2vh -0.2vh 0 #000, 0.2vh -0.2vh 0 #000,
+    -0.2vh  0.2vh 0 #000, 0.2vh  0.2vh 0 #000;
+}
+
+.phase-slide__sub {
+  color: #fff;
+  margin-top: 2.2vh;
+  font-size: min(4.6vw, 2.4vh);
+  line-height: 1.7;
+  white-space: pre-line;
 }

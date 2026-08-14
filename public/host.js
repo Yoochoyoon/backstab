@@ -13,6 +13,7 @@ const createSection = document.getElementById("createSection");
 const lobbySection = document.getElementById("lobbySection");
 const gameControlSection = document.getElementById("gameControlSection");
 const errorLabel = document.getElementById("errorLabel");
+const showSlide = createSlideQueue("phaseSlide");
 
 document.getElementById("createRoomBtn").addEventListener("click", () => {
   socket.emit("host:create_room", {}, (res) => {
@@ -98,8 +99,11 @@ function renderGrid() {
   }
 }
 
+function nameOf(id) {
+  return players.find((p) => p.id === id)?.nickname ?? "???";
+}
+
 function showResult(title, damageLog, note) {
-  const nameOf = (id) => players.find((p) => p.id === id)?.nickname ?? "???";
   const lines = damageLog.map((d) => `${nameOf(d.targetId)} -${d.damage}`);
   document.getElementById("resultLog").innerHTML =
     `<strong>${title}</strong><br>` + (lines.join("<br>") || note || "이번엔 아무 일도 없었습니다.");
@@ -168,6 +172,15 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   if (phase === "night" || phase === "day_discussion") {
     document.getElementById("resultLog").textContent = "";
   }
+
+  // day_reveal은 night_result 슬라이드가 이미 그 내용을 보여주므로 따로 안내 슬라이드를 안 띄운다.
+  if (phase === "night") {
+    showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
+  } else if (phase === "day_discussion") {
+    showSlide("💬", "토론 시작", "누가 수상한지 이야기해보세요");
+  } else if (phase === "day_vote") {
+    showSlide("🗳️", "투표 시작", "의심되는 사람을 지목하세요");
+  }
   const advanceBtn = document.getElementById("advanceBtn");
   const extendBtn = document.getElementById("extendBtn");
   const hasTimer = phase === "night" || phase === "day_discussion" || phase === "day_vote";
@@ -175,10 +188,38 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   advanceBtn.textContent = phase === "day_reveal" ? "토론 시작하기" : "다음 단계로";
 });
 
-socket.on("state:night_result", ({ damageLog }) => showResult("🌙 밤 결과", damageLog));
-socket.on("state:vote_result", ({ damageLog, tie, finalTie }) =>
-  showResult("🗳 투표 결과", damageLog, tie ? (finalTie ? "동점 - 데미지 없음" : "동점 - 재투표") : undefined),
-);
+socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
+  showResult("🌙 밤 결과", damageLog);
+
+  let sub;
+  if (damageLog.length === 0) {
+    sub = "이번 밤엔 아무 일도 없었습니다";
+  } else {
+    const deaths = (updatedPlayers || []).filter(
+      (p) => !p.alive && damageLog.some((d) => d.targetId === p.id),
+    );
+    const lines = deaths.map((p) => `${p.nickname} 사망`);
+    const survivedHits = damageLog.length - deaths.length;
+    if (survivedHits > 0) lines.push(`그 외 ${survivedHits}명 피해`);
+    sub = lines.join("\n");
+  }
+  showSlide("☀️", "밤 사이 벌어진 일", sub);
+});
+
+socket.on("state:vote_result", ({ damageLog, tie, finalTie, topTargetId, players: updatedPlayers }) => {
+  showResult("🗳 투표 결과", damageLog, tie ? (finalTie ? "동점 - 데미지 없음" : "동점 - 재투표") : undefined);
+
+  let sub;
+  if (tie) {
+    sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
+  } else if (topTargetId) {
+    const died = (updatedPlayers || []).some((p) => p.id === topTargetId && !p.alive);
+    sub = `${nameOf(topTargetId)}가 최종 지목되었습니다` + (died ? "\n사망" : "");
+  } else {
+    sub = "아무도 지목되지 않았습니다";
+  }
+  showSlide("🗳️", "투표 결과", sub);
+});
 
 socket.on("state:game_over", ({ winner }) => {
   const gameShell = document.querySelector(".host-layout");

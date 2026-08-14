@@ -75,6 +75,7 @@ const gameSection = document.getElementById("gameSection");
 const resultSection = document.getElementById("resultSection");
 const overSection = document.getElementById("overSection");
 const errorLabel = document.getElementById("errorLabel");
+const showSlide = createSlideQueue("phaseSlide");
 
 socket.on("connect", () => {
   myId = socket.id;
@@ -158,6 +159,12 @@ function applyPhase(phase, round, phaseEndsAt) {
   selectedAction = "attack";
   resultSection.style.display = "none";
 
+  // 새 페이즈가 시작되면 지난 페이즈에 눌러둔 "지목완료" 상태를 원래대로 되돌린다.
+  const submitBtnReset = document.getElementById("submitBtn");
+  submitBtnReset.textContent = "지목 확정";
+  submitBtnReset.classList.remove("is-submitted");
+  submitBtnReset.disabled = false;
+
   const myself = players.find((p) => p.id === myId);
   if (myself) {
     document.getElementById("hpLabel").textContent = `HP ${myself.hp}${myself.alive ? "" : " (사망)"}`;
@@ -169,12 +176,26 @@ function applyPhase(phase, round, phaseEndsAt) {
     overSection.style.display = "block";
     const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
     document.getElementById("myRoleReveal").textContent = `내 역할은 ${roleNames[myRole] ?? myRole}이었습니다.`;
+    // phaseLabel/timerLabel은 상단 3박스에 계속 남아있으므로, 게임 종료 후에도
+    // 직전 페이즈("투표" 등)의 문구/타이머가 그대로 붙어있지 않게 정리한다.
+    document.getElementById("phaseLabel").textContent = "게임 종료";
+    startCountdown(null, document.getElementById("timerLabel"));
     return;
   }
 
   gameSection.style.display = "flex";
   document.getElementById("phaseLabel").textContent = PHASE_LABELS[phase];
   startCountdown(phaseEndsAt, document.getElementById("timerLabel"));
+
+  // day_reveal은 night_result 슬라이드가 이미 그 내용을 보여주므로 따로 안내 슬라이드를 안 띄운다.
+  // 호스트 화면 없이도 지금 무슨 상황인지 알 수 있게 참가자 화면에도 똑같이 띄운다.
+  if (phase === "night") {
+    showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
+  } else if (phase === "day_discussion") {
+    showSlide("💬", "토론 시작", "누가 수상한지 이야기해보세요");
+  } else if (phase === "day_vote") {
+    showSlide("🗳️", "투표 시작", "의심되는 사람을 지목하세요");
+  }
 
   const instructionLabel = document.getElementById("instructionLabel");
   const submitBtn = document.getElementById("submitBtn");
@@ -188,6 +209,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "none";
     summaryPanel.style.display = "none";
     document.getElementById("actionSection").style.display = "none";
+    document.getElementById("targetSection").style.display = "none";
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     document.getElementById("targetList").innerHTML = "";
@@ -195,6 +217,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     instructionLabel.textContent = "행동을 선택하고 대상을 지목하세요.";
     submitBtn.style.display = "block";
     summaryPanel.style.display = "block";
+    document.getElementById("targetSection").style.display = "flex";
     renderActionChoices();
   } else if (phase === "day_vote") {
     voteAllowedTargetIds = null; // 서버가 별도로 알려주지 않는 한 전원 대상
@@ -202,6 +225,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "block";
     summaryPanel.style.display = "block";
     document.getElementById("actionSection").style.display = "none";
+    document.getElementById("targetSection").style.display = "flex";
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     renderTargetList();
@@ -210,6 +234,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "none";
     summaryPanel.style.display = "none";
     document.getElementById("actionSection").style.display = "none";
+    document.getElementById("targetSection").style.display = "none";
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     document.getElementById("targetList").innerHTML = "";
@@ -218,6 +243,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "none";
     summaryPanel.style.display = "none";
     document.getElementById("actionSection").style.display = "none";
+    document.getElementById("targetSection").style.display = "none";
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     document.getElementById("targetList").innerHTML = "";
@@ -241,17 +267,45 @@ function updateBeginnerHint(phase, round) {
   }
 }
 
-socket.on("state:night_result", ({ damageLog }) => {
+socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
   showResult("🌙 밤 결과", damageLog);
+
+  // 호스트 화면 없이도 참가자 화면만으로 밤 사이 무슨 일이 있었는지 알 수 있게 슬라이드로도 보여준다.
+  let sub;
+  if (damageLog.length === 0) {
+    sub = "이번 밤엔 아무 일도 없었습니다";
+  } else {
+    const nameOfFresh = (id) => (updatedPlayers || players).find((p) => p.id === id)?.nickname ?? "???";
+    const deaths = (updatedPlayers || []).filter(
+      (p) => !p.alive && damageLog.some((d) => d.targetId === p.id),
+    );
+    const lines = deaths.map((p) => `${p.nickname} 사망`);
+    const survivedHits = damageLog.length - deaths.length;
+    if (survivedHits > 0) lines.push(`그 외 ${survivedHits}명 피해`);
+    sub = lines.join("\n") || damageLog.map((d) => `${nameOfFresh(d.targetId)} -${d.damage}`).join("\n");
+  }
+  showSlide("☀️", "밤 사이 벌어진 일", sub);
 });
 
-socket.on("state:vote_result", ({ damageLog, tie, tiedTargetIds, finalTie }) => {
+socket.on("state:vote_result", ({ damageLog, tie, tiedTargetIds, finalTie, topTargetId, players: updatedPlayers }) => {
   if (tie) {
     voteAllowedTargetIds = tiedTargetIds ?? null;
     showResult("🗳 투표 결과", [], finalTie ? "동점으로 이번 라운드는 데미지 없이 종료됩니다." : "동점! 동점자 중에서 재투표합니다.");
   } else {
     showResult("🗳 투표 결과", damageLog);
   }
+
+  let sub;
+  if (tie) {
+    sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
+  } else if (topTargetId) {
+    const nameOfFresh = (id) => (updatedPlayers || players).find((p) => p.id === id)?.nickname ?? "???";
+    const died = (updatedPlayers || []).some((p) => p.id === topTargetId && !p.alive);
+    sub = `${nameOfFresh(topTargetId)}가 최종 지목되었습니다` + (died ? "\n사망" : "");
+  } else {
+    sub = "아무도 지목되지 않았습니다";
+  }
+  showSlide("🗳️", "투표 결과", sub);
 });
 
 socket.on("state:full_sync", (data) => {
@@ -439,4 +493,26 @@ document.getElementById("submitBtn").addEventListener("click", () => {
     socket.emit("player:submit_vote", { targetId: selectedTargetId });
   }
   document.getElementById("instructionLabel").textContent = "지목 완료! 다른 사람들을 기다리는 중...";
+  markSubmitted();
 });
+
+// 제출 완료 상태를 눈에 띄게 보여준다 — 지목한 카드는 노랑(선택)에서 초록(확정)으로,
+// 버튼은 "지목완료"로 바뀌고 더 눌리지 않게 잠근다.
+function markSubmitted() {
+  const btn = document.getElementById("submitBtn");
+  btn.textContent = "지목완료";
+  btn.classList.add("is-submitted");
+  btn.disabled = true;
+
+  const selectedCard = document.querySelector("#targetList .hp-monitor-card.selected");
+  if (selectedCard) {
+    selectedCard.classList.remove("selected");
+    selectedCard.classList.add("confirmed");
+  }
+  document.querySelectorAll("#targetList .hp-monitor-card").forEach((el) => {
+    el.style.pointerEvents = "none";
+  });
+  document.querySelectorAll(".na-skill-card").forEach((el) => {
+    el.style.pointerEvents = "none";
+  });
+}

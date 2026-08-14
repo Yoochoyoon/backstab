@@ -74,3 +74,39 @@ function startCountdown(phaseEndsAt, el) {
   tick();
   window.__countdownTimer = setInterval(tick, 250);
 }
+
+// 페이즈 전환 슬라이드(밤 시작/결과공개/투표시작/투표결과 등) 큐.
+// 호스트·플레이어 화면 둘 다에서 같은 방식으로 쓴다 — 짧은 시간에 이벤트가 연달아
+// 오더라도(예: night_result 직후 다음 라운드 phase_changed) 겹치지 않고 순서대로 보여준다.
+function createSlideQueue(overlayId) {
+  const overlay = document.getElementById(overlayId);
+  const queue = [];
+  let showing = false;
+
+  function renderNext() {
+    if (queue.length === 0) {
+      showing = false;
+      overlay.style.display = "none";
+      return;
+    }
+    showing = true;
+    const { icon, title, sub, duration } = queue.shift();
+    overlay.classList.remove("is-leaving");
+    overlay.innerHTML = `
+      <div class="phase-slide__content">
+        <div class="phase-slide__icon">${icon}</div>
+        <div class="phase-slide__title">${title}</div>
+        ${sub ? `<div class="phase-slide__sub">${sub}</div>` : ""}
+      </div>`;
+    overlay.style.display = "flex";
+    setTimeout(() => {
+      overlay.classList.add("is-leaving");
+      setTimeout(renderNext, 260);
+    }, duration);
+  }
+
+  return function showSlide(icon, title, sub, duration = 2400) {
+    queue.push({ icon, title, sub, duration });
+    if (!showing) renderNext();
+  };
+}

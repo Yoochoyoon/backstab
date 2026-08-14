@@ -80,7 +80,7 @@
         <ul class="na-plain-list" id="shieldModeChoices" style="display:none"></ul>
       </section>
 
-      <section class="na-section">
+      <section class="na-section" id="targetSection" style="display:none">
         <h2 class="na-section__title" id="targetSectionTitle">2. 대상을 선택하세요</h2>
         <ul class="na-target-grid" id="targetList"></ul>
       </section>
@@ -106,10 +106,13 @@
 
     <div id="overSection" class="na-panel" style="display:none">
       <h2 class="na-panel__title">게임 종료</h2>
-      <p id="winnerLabel"></p>
+      <p class="na-winner" id="winnerLabel"></p>
       <p class="na-panel__sub" id="myRoleReveal"></p>
     </div>
   </div>
+
+  <!-- 페이즈 전환 슬라이드 (밤 시작/결과공개/투표시작/투표결과) -->
+  <div id="phaseSlide" class="phase-slide" style="display:none"></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/shared.js"></script>
