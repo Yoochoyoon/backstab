@@ -969,6 +969,63 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   filter: brightness(0.5);
 }
 
+/* 밤 반전이 인스턴트 전환이 아니라 눈에 보이는 "플립"처럼 느껴지게 트랜지션을 준다. */
+.case-badge,
+.phase-bar,
+.progress-timer,
+.hp-monitor-card,
+.boss-sticker,
+.hp-monitor-card__avatar,
+.boss-sticker__avatar,
+.hp-pip {
+  transition: background 350ms ease-out, border-color 350ms ease-out, color 350ms ease-out;
+}
+
+/* 밤에는 흑백 요소(검정 테두리+흰 면 ↔ 흰 테두리+검정 면)를 반전시켜 분위기를
+   확실히 바꾼다. 노랑(강조)·빨강(HP) 등 색이 있는 요소는 그대로 둔다. */
+.host-layout[data-phase="night"] .case-badge,
+.host-layout[data-phase="night"] .phase-bar,
+.host-layout[data-phase="night"] .hp-monitor-card,
+.host-layout[data-phase="night"] .boss-sticker {
+  background: #000;
+  border-color: #fff;
+}
+
+.host-layout[data-phase="night"] .case-badge__label,
+.host-layout[data-phase="night"] .case-badge__case-word,
+.host-layout[data-phase="night"] .phase-bar__label,
+.host-layout[data-phase="night"] .hp-monitor-card__name,
+.host-layout[data-phase="night"] .hp-monitor-card__hp-text,
+.host-layout[data-phase="night"] .boss-sticker__name {
+  color: #fff;
+}
+
+.host-layout[data-phase="night"] .boss-sticker__hp-text {
+  color: #ccc;
+}
+
+.host-layout[data-phase="night"] .progress-timer {
+  background: #fff;
+  border-color: #000;
+  color: #000;
+}
+
+.host-layout[data-phase="night"] .hp-monitor-card__avatar,
+.host-layout[data-phase="night"] .boss-sticker__avatar {
+  background: #fff;
+  color: #000;
+}
+
+.host-layout[data-phase="night"] .phase-icon {
+  background: #fff;
+  color: #000;
+}
+
+/* 검정 테두리 pip가 이제 검정 카드 위에서 안 보이는 걸 막는다. */
+.host-layout[data-phase="night"] .hp-pip {
+  border-color: #fff;
+}
+
 .host-layout > .tv-upper,
 .host-layout > .control-lower {
   position: relative;
@@ -1160,7 +1217,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   background: #000;
   border: 0.3vh solid transparent;
   color: #fff;
-  transition: border-color 200ms ease-out, color 200ms ease-out;
+  transition: background 350ms ease-out, border-color 200ms ease-out, color 200ms ease-out;
 }
 
 .phase-icon svg {
