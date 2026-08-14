@@ -1,6 +1,27 @@
 const MIN_PLAYERS = 6;
 const MAX_PLAYERS = 10;
 
+const MAX_HP_BY_ROLE = {
+  boss: 5,
+  bodyguard: 4,
+  spy: 4,
+  traitor: 4,
+};
+
+function getMaxHpForRole(role) {
+  return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
+}
+
+// 보스 카드/플레이어 카드/모바일 대상 카드 등 여러 화면에서 공용으로 쓰는 HP 조각(pip) 렌더러.
+function renderPipBar(container, hp, maxHp, colorClass) {
+  container.innerHTML = "";
+  for (let i = 0; i < maxHp; i++) {
+    const pip = document.createElement("div");
+    pip.className = `hp-pip ${colorClass}` + (i < hp ? " filled" : "");
+    container.appendChild(pip);
+  }
+}
+
 const PHASE_LABELS = {
   lobby: "대기실",
   night: "🌙 밤 - 대상 지목",

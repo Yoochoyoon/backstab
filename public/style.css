@@ -54,10 +54,6 @@
   --hero-burgundy-gradient: linear-gradient(135deg, #5D2E2E 0%, #8B4545 50%, #5D2E2E 100%);
   --hero-burgundy-gradient-deep: linear-gradient(135deg, #2A1414 0%, #4A2323 50%, #2A1414 100%);
 
-  /* 진행 상황 화면 (Figma "TV - 3") 배경 — 랜딩/대기실보다 훨씬 어두운 사건기록실 톤.
-     Figma가 지정한 실제 배경색(#200000)을 그대로 쓴다. */
-  --progress-bg: linear-gradient(160deg, #200000 0%, #3a1414 60%, #200000 100%);
-  --progress-bg-night: #120202;
 }
 
 * { box-sizing: border-box; }
@@ -325,25 +321,13 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .join-start-btn {
+  --btn-accent: #FFE500;
   position: relative;
   z-index: 4;
   width: auto;
   min-height: 52px;
-  background: #000;
-  border: 0.5vh solid #FFE500;
-  border-radius: 1.2vh;
-  box-shadow: 0 0.4vh 0 #FFE500;
-  color: #FFE500;
-  font-weight: 900;
   font-size: min(2.6vh, 4.8cqw);
-  letter-spacing: 0.08em;
   padding: 1.4vh 4vh;
-  cursor: pointer;
-}
-
-.join-start-btn:hover:not(:disabled) {
-  background: #FFE500;
-  color: #000;
 }
 
 .join-error {
@@ -410,6 +394,348 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .waiting-list li:last-child {
   border-bottom: none;
+}
+
+/* ============================================================
+   밤 행동 / 투표 화면 (Figma "Android Compact - 3")
+   게임 진행 중에는 장식보다 정보 전달이 우선이라(design.md 10.5),
+   랜딩/대기실의 회전 카드 대신 검정 배경 위에 바로 배치한다.
+   ============================================================ */
+.na-screen {
+  min-height: 100dvh;
+  background: #300a0d;
+  color: #fff;
+  line-height: 1.6;
+  padding: 3vh 4vw 5vh;
+  box-sizing: border-box;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 4vh;
+}
+
+/* 상단 3박스: 보스 공개 / 내 역할 / 타이머 */
+.na-topline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  gap: 2vw;
+}
+
+.na-box {
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 1.2vh;
+  padding: 1.8vh 2.4vw;
+  text-align: center;
+}
+
+.na-box--info {
+  background: #fff;
+  border: 0.4vh solid var(--color-crimson);
+  color: var(--color-crimson);
+}
+
+/* 라벨+값을 한 줄에 써서 박스 높이를 낮춘다. */
+.na-box__title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.6vw;
+  flex-wrap: wrap;
+}
+
+.na-box__label {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
+  font-size: min(2.8vw, 2vh);
+  letter-spacing: 0.05em;
+}
+
+.na-box__value {
+  font-weight: 900;
+  font-size: min(3.8vw, 2.6vh);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.na-hp-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8vw;
+  margin-top: 0.8vh;
+}
+
+.na-hp-icon {
+  flex-shrink: 0;
+  width: min(3.2vw, 2.2vh);
+  height: min(3.2vw, 2.2vh);
+  color: var(--color-danger);
+}
+
+.na-hp-track {
+  flex: 1;
+  height: 0.9vh;
+  border-radius: 999px;
+  background: rgba(143, 32, 40, 0.2);
+  overflow: hidden;
+}
+
+.na-hp-fill {
+  height: 100%;
+  background: var(--color-danger);
+  transition: width 300ms ease-out;
+}
+
+/* hpLabel — 이제 HP바와 같은 줄에 붙는다. */
+.na-box__sub {
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-size: min(2.4vw, 1.7vh);
+  color: var(--color-crimson);
+  opacity: 0.8;
+}
+
+.na-box--timer {
+  background: #000;
+  border: 0.4vh solid var(--color-crimson);
+}
+
+.na-box--timer .na-box__label {
+  color: #fff;
+}
+
+.na-box__timer {
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: min(6.4vw, 3.6vh);
+  color: #FFE500;
+  letter-spacing: 0.05em;
+}
+
+.na-box__timer.is-warning {
+  color: #FFA500;
+}
+
+.na-box__timer.is-critical {
+  color: var(--color-danger);
+}
+
+/* 스파이 동료 공개 / 결과 / 게임 종료 공용 패널 */
+.na-panel {
+  background: rgba(143, 32, 40, 0.22);
+  border: 0.35vh solid var(--color-crimson);
+  border-radius: 1.2vh;
+  padding: 2.2vh 6vw;
+}
+
+.na-panel__label,
+.na-panel__title {
+  display: block;
+  color: #FFE500;
+  font-weight: 800;
+  margin: 0 0 0.8vh;
+}
+
+.na-panel__sub {
+  color: #ccc;
+}
+
+.na-plain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  color: #fff;
+}
+
+.na-plain-list li {
+  padding: 1.3vh 0;
+  line-height: 1.5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+}
+
+.na-plain-list li:last-child {
+  border-bottom: none;
+}
+
+.na-plain-list li.selected {
+  color: #FFE500;
+  font-weight: 700;
+}
+
+/* gameSection의 자식들(안내문/스킬/대상/요약/버튼) 사이 세로 간격. */
+.na-game {
+  display: flex;
+  flex-direction: column;
+  gap: 4vh;
+}
+
+.na-instruction {
+  color: #fff;
+  text-align: center;
+  font-weight: 600;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.na-hint {
+  color: #FFE500;
+  text-align: center;
+  font-size: min(3.4vw, 1.8vh);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.na-section {
+  display: flex;
+  flex-direction: column;
+  gap: 2.2vh;
+}
+
+/* 굵은 검정 외곽선 텍스트 — hero-title/lobby-title과 같은 코믹체 아웃라인 기법. */
+.na-section__title {
+  color: #FFE500;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: min(3.8vw, 2.1vh);
+  font-weight: 800;
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.03em;
+  text-shadow:
+    -0.26vh -0.26vh 0 #000, 0.26vh -0.26vh 0 #000,
+    -0.26vh  0.26vh 0 #000, 0.26vh  0.26vh 0 #000;
+}
+
+/* 1. 스킬을 선택하세요 — 2열 그리드 */
+.na-skill-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2.6vw;
+}
+
+.na-skill-card {
+  box-sizing: border-box;
+  background: rgba(143, 32, 40, 0.22);
+  border: 0.35vh solid var(--color-crimson);
+  border-radius: 1.2vh;
+  padding: 2.6vh 2.4vw;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 150ms ease-out, background 150ms ease-out;
+}
+
+.na-skill-card.selected {
+  background: #000;
+  border-color: #FFE500;
+}
+
+.na-skill-card__icon {
+  width: min(10vw, 6.2vh);
+  height: min(10vw, 6.2vh);
+  margin: 0 auto 1vh;
+  color: #ccc;
+}
+
+.na-skill-card.selected .na-skill-card__icon {
+  color: #FFE500;
+}
+
+.na-skill-card__title {
+  display: block;
+  color: #fff;
+  font-weight: 800;
+  font-size: min(3.8vw, 2.1vh);
+  margin-bottom: 0.4vh;
+}
+
+.na-skill-card.selected .na-skill-card__title {
+  color: #FFE500;
+}
+
+.na-skill-card__sub {
+  display: block;
+  color: #bbb;
+  font-size: min(2.6vw, 1.5vh);
+  line-height: 1.5;
+}
+
+/* 2. 대상을 선택하세요 — 3열 카드 그리드. 진행상황 화면의 참가자 HP 모니터 카드
+   (.hp-monitor-card)를 그대로 재사용하고, 이 화면 전용으로 필요한 부분만 덧붙인다. */
+.na-target-grid {
+  list-style: none;
+  margin: 0;
+  padding: 1.4vh 0 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.6vw;
+  row-gap: 3vh;
+}
+
+.na-target-grid .hp-monitor-card {
+  height: auto;
+  cursor: pointer;
+  /* 카드 자체의 overflow:hidden(진행상황 화면의 사망 도장용)이 위로 튀어나온
+     "보스" 배지를 잘라먹으므로, 이 화면에서는 넘치는 부분을 보이게 둔다. */
+  overflow: visible;
+}
+
+/* 카드가 콘텐츠 높이만큼만 차지할 때 body의 flex:1(flex-basis:0%)이 overflow:hidden과
+   만나 0높이로 접히는 문제 — 진행상황 화면 모바일 대응에서 확인된 것과 같은 이슈. */
+.na-target-grid .hp-monitor-card__body {
+  flex: none;
+  padding: 1.4vh 1.4vh;
+}
+
+.na-target-grid .hp-monitor-card.selected {
+  border-color: #FFE500;
+  box-shadow: 0 0 0 0.25vh #FFE500;
+}
+
+.na-target-card__tag {
+  position: absolute;
+  top: -1.2vh;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  background: #FFE500;
+  color: #000;
+  font-size: min(2.4vw, 1.4vh);
+  font-weight: 800;
+  padding: 0.1vh 0.9vw;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.na-summary {
+  background: rgba(143, 32, 40, 0.22);
+  border: 0.35vh solid var(--color-crimson);
+  border-radius: 1.2vh;
+  padding: 1.8vh 6vw;
+}
+
+.na-summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1vw;
+  padding: 0.8vh 0;
+  line-height: 1.5;
+  color: #fff;
+  font-size: min(3.4vw, 1.8vh);
+}
+
+.na-summary__value {
+  color: #FFE500;
+}
+
+/* 색상/테두리/hover는 join-start-btn과 공유 셀렉터에서 (아래 --btn-accent 규칙 참고),
+   여기서는 이 화면 전용 크기만 지정한다. */
+.na-confirm-btn {
+  font-size: min(4.6vw, 2.4vh);
+  padding: 2.4vh 0;
+  margin-top: 1vh;
 }
 
 /* 대기실 화면 (Figma "TV - 2": 입장한 플레이어) — 랜딩과 같은 회전 카드 배경을 쓰되
@@ -598,23 +924,31 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
    언어(검정/버건디/흰색/노란색, 흰 카드+검정 테두리+하드 섀도우+통일된 -8deg skew)로
    재구성. 회전·접힌 모서리 같은 Figma 스티커 디테일은 재현하지 않는다. */
 .host-layout {
+  position: relative;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 100vh;
   gap: 0.6vh;
   padding: clamp(16px, 2.4cqw, 36px);
   box-sizing: border-box;
-  background: var(--progress-bg);
-  transition: background 500ms ease-out;
+  background: #000;
   container-type: inline-size;
 }
 
-.host-layout[data-phase="night"] {
-  background: var(--progress-bg-night);
+/* 랜딩 화면부터 쓰던 .hero-card(회전 카드+종이질감)를 그대로 재사용한 배경. */
+.host-layout .hero-card {
+  transition: filter 500ms ease-out;
 }
 
-.host-layout[data-phase="night"] .tv-upper {
-  filter: brightness(0.85);
+.host-layout[data-phase="night"] .hero-card {
+  filter: brightness(0.5);
+}
+
+.host-layout > .tv-upper,
+.host-layout > .control-lower {
+  position: relative;
+  z-index: 4;
 }
 
 .tv-upper {
@@ -669,9 +1003,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  background: #fff;
-  color: #000;
-  border: 0.45vh solid #000;
+  background: #000;
+  color: #fff;
+  border: 0.5vh solid #fff;
   border-radius: 0.8vh;
   padding: 0.6vh 1.6vh;
   font-family: 'Rubik Mono One', sans-serif;
@@ -691,7 +1025,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   height: 100%;
   box-sizing: border-box;
   background: #fff;
-  border: 0.6vh solid #000;
+  border: 0.5vh solid #000;
   border-radius: 1vh;
   box-shadow: 0.6vh 0.6vh 0 rgba(0, 0, 0, 0.85);
   width: min(38cqw, 460px);
@@ -709,7 +1043,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #3a1414 0%, #6b2b2b 100%);
+  background: #000;
   color: #FFE500;
   font-family: 'Rubik Mono One', sans-serif;
   font-size: min(8cqw, 9vh);
@@ -723,21 +1057,26 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   padding: 1.6vh 2.4vw 2vh;
 }
 
+/* 보스 역할표: 노란 배지로 강조해서 "보스"라는 역할이 바로 눈에 띄게 한다. */
 .boss-sticker__label {
-  display: block;
-  font-weight: 700;
-  font-size: min(2.2cqw, 2.4vh);
+  display: inline-block;
+  font-weight: 900;
+  font-size: min(2cqw, 2.2vh);
   color: #000;
+  background: #FFE500;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  margin-bottom: 0.6vh;
+  padding: 0.3vh 1.2vh;
+  border-radius: 999px;
+  margin-bottom: 0.8vh;
 }
 
 .boss-sticker__name {
   font-weight: 900;
-  font-size: min(5.2cqw, 6vh);
+  font-size: min(6cqw, 7vh);
   color: #000;
-  line-height: 1.1;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
 }
 
 .boss-sticker__hp-text {
@@ -765,15 +1104,16 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   align-items: flex-start;
   justify-content: center;
   gap: 1vh;
-  background: #000;
-  border: 0.5vh solid #fff;
+  background: #fff;
+  border: 0.5vh solid #000;
   border-radius: 1vh;
   padding: 1.6vh 2vw;
 }
 
 .phase-bar__label {
-  color: #fff;
-  font-weight: 700;
+  color: #000;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
   font-size: min(3.6cqw, 4vh);
   letter-spacing: 0.03em;
 }
@@ -787,20 +1127,31 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   width: min(6.2cqw, 7vh);
   height: min(6.2cqw, 7vh);
   min-width: 36px;
   min-height: 36px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
-  font-size: min(3.4cqw, 3.8vh);
-  filter: grayscale(1) opacity(0.55);
-  transition: background 200ms ease-out, filter 200ms ease-out;
+  background: #000;
+  border: 0.3vh solid transparent;
+  color: #fff;
+  transition: border-color 200ms ease-out, color 200ms ease-out;
 }
 
+.phase-icon svg {
+  width: 52%;
+  height: 52%;
+}
+
+/* 현재 라운드 상태만 노란 테두리 + 노란 아이콘으로 강조한다 — 배경은 다른 아이콘과 같은 검정 그대로. */
 .phase-icon.is-active {
-  background: #FFE500;
-  filter: none;
+  border-color: #FFE500;
+  color: #FFE500;
+}
+
+.phase-icon.is-active svg {
+  opacity: 1;
 }
 
 .case-badge {
@@ -811,8 +1162,8 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   flex-direction: column;
   justify-content: center;
-  background: #000;
-  border: 0.5vh solid #fff;
+  background: #fff;
+  border: 0.5vh solid #000;
   border-radius: 1vh;
   padding: 1.4vh 1.8vh;
   text-align: center;
@@ -820,7 +1171,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .case-badge__label {
   display: block;
-  color: #fff;
+  color: #000;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
   font-size: min(1.6cqw, 1.8vh);
   letter-spacing: 0.1em;
   margin-bottom: 0.4vh;
@@ -828,19 +1181,25 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .case-badge__case-word {
   display: block;
-  color: #fff;
-  font-weight: 600;
+  color: #000;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
   font-size: min(1.8cqw, 2vh);
   letter-spacing: 0.1em;
-  opacity: 0.8;
+  opacity: 0.6;
 }
 
+/* 노란 배지 위에 검정 글자 — 흰 배경에서도 대비가 확실하게 남도록. */
 .case-badge__value {
-  display: block;
-  color: #FFE500;
+  display: inline-block;
+  color: #000;
+  background: #FFE500;
   font-family: 'Rubik Mono One', sans-serif;
   font-size: min(3.2cqw, 3.6vh);
   letter-spacing: 0.05em;
+  padding: 0.2vh 1vh;
+  border-radius: 0.6vh;
+  margin-top: 0.4vh;
 }
 
 .hp-monitor {
@@ -872,26 +1231,46 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .hp-monitor-card {
+  position: relative;
   min-width: 0;
   height: 100%;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   background: #fff;
-  border: 0.45vh solid #000;
+  border: 0.7vh solid #000;
   border-radius: 0.8vh;
   box-shadow: 0.4vh 0.4vh 0 rgba(0, 0, 0, 0.85);
   text-align: center;
-  transition: opacity 200ms ease-out;
   overflow: hidden;
 }
 
-.hp-monitor-card.is-dead {
-  opacity: 0.4;
+/* 사망: 카드를 검정 오버레이(::before)로 확 어둡게 죽이고, 그 위(::after)에
+   30deg 기울어진 큼직한 "사망" 도장 글자를 얹는다. */
+.hp-monitor-card.is-dead::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: rgba(0, 0, 0, 0.72);
 }
 
-.hp-monitor-card.is-boss {
-  border-color: #FFE500;
+.hp-monitor-card.is-dead::after {
+  content: '사망';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-30deg);
+  pointer-events: none;
+  color: #E4180F;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(9.6cqw, 10.8vh);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  text-shadow:
+    -0.15vh -0.15vh 0 #000, 0.15vh -0.15vh 0 #000,
+    -0.15vh  0.15vh 0 #000, 0.15vh  0.15vh 0 #000;
 }
 
 /* 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정 */
@@ -901,7 +1280,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #3a1414 0%, #6b2b2b 100%);
+  background: #000;
   color: #fff;
   font-family: 'Rubik Mono One', sans-serif;
   font-size: min(4cqw, 4.4vh);
@@ -916,35 +1295,35 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .hp-monitor-card__name {
-  font-weight: 800;
+  font-weight: 900;
   color: #000;
-  font-size: min(2cqw, 2.2vh);
+  font-size: min(2.8cqw, 3.1vh);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .hp-monitor-card__hp-text {
-  font-weight: 600;
-  color: #333;
-  font-size: min(1.6cqw, 1.8vh);
-  margin: 0.5vh 0;
+  font-weight: 800;
+  color: #000;
+  font-size: min(2.2cqw, 2.5vh);
+  margin: 0.6vh 0;
 }
 
 .hp-monitor-card__pips {
   display: flex;
   justify-content: center;
-  gap: 0.35vh;
+  gap: 0.5vh;
   flex-wrap: wrap;
 }
 
 /* HP 조각(pip) — 보스 카드(노란색)·플레이어 카드(빨간색) 공용 */
 .hp-pip {
-  width: min(2.2cqw, 2.4vh);
-  height: min(2.2cqw, 2.4vh);
-  min-width: 8px;
-  min-height: 8px;
-  border: 1px solid #000;
+  width: min(3cqw, 3.4vh);
+  height: min(3cqw, 3.4vh);
+  min-width: 10px;
+  min-height: 10px;
+  border: 0.15vh solid #000;
   border-radius: 2px;
   background: #ddd;
 }
@@ -970,32 +1349,42 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   gap: 1cqw;
 }
 
+/* 강조색 필 버튼 공통 패턴 — join-start-btn(검정 배경 + 강조색 테두리/그림자/글자,
+   hover 시 색 반전)을 그대로 공유한다. 새 버튼은 --btn-accent만 지정하면 된다. */
+.join-start-btn,
+.btn-advance,
+.btn-extend,
+.na-confirm-btn {
+  background: #000;
+  border: 0.5vh solid var(--btn-accent, #FFE500);
+  border-radius: 1.2vh;
+  box-shadow: 0 0.4vh 0 var(--btn-accent, #FFE500);
+  color: var(--btn-accent, #FFE500);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.join-start-btn:hover:not(:disabled),
+.btn-advance:hover:not(:disabled),
+.btn-extend:hover:not(:disabled),
+.na-confirm-btn:hover:not(:disabled) {
+  background: var(--btn-accent, #FFE500);
+  color: #000;
+}
+
 .btn-extend {
+  --btn-accent: #2ECC71;
   flex: 1;
+  padding: 1.2vh 1.6vh;
+  font-size: min(2cqw, 2.2vh);
 }
 
 .btn-advance {
+  --btn-accent: #FFE500;
   flex: 2;
-}
-
-.btn-extend {
-  border-color: #2ECC71;
-  color: #2ECC71;
-}
-
-.btn-extend:hover:not(:disabled) {
-  background: #2ECC71;
-  color: #000;
-}
-
-.btn-advance {
-  border-color: #FFE500;
-  color: #FFE500;
-}
-
-.btn-advance:hover:not(:disabled) {
-  background: #FFE500;
-  color: #000;
+  padding: 1.2vh 1.6vh;
+  font-size: min(2cqw, 2.2vh);
 }
 
 @media (prefers-reduced-motion: reduce) {

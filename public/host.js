@@ -2,27 +2,6 @@ const socket = io();
 let players = [];
 let currentRoomCode = "";
 
-const MAX_HP_BY_ROLE = {
-  boss: 5,
-  bodyguard: 4,
-  spy: 4,
-  traitor: 4,
-};
-
-function getMaxHpForRole(role) {
-  return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
-}
-
-// 보스 카드/플레이어 카드 양쪽에서 공용으로 쓰는 HP 조각(pip) 렌더러.
-function renderPipBar(container, hp, maxHp, colorClass) {
-  container.innerHTML = "";
-  for (let i = 0; i < maxHp; i++) {
-    const pip = document.createElement("div");
-    pip.className = `hp-pip ${colorClass}` + (i < hp ? " filled" : "");
-    container.appendChild(pip);
-  }
-}
-
 const PHASE_ICON_MAP = {
   night: "night",
   day_reveal: "discussion",
@@ -95,15 +74,16 @@ function renderLobbyGrid(players) {
 function renderGrid() {
   const grid = document.getElementById("playerGrid");
   grid.innerHTML = "";
-  const playerCount = players.length || MIN_PLAYERS;
+  // 보스는 별도 보스 카드에 이름/HP가 이미 떠 있으니 참가자 HP 모니터에서는 제외한다.
+  const nonBossPlayers = players.filter((p) => p.role !== "boss");
+  const playerCount = nonBossPlayers.length || MIN_PLAYERS;
   grid.style.setProperty("--player-count", playerCount);
   grid.style.setProperty("--player-count-half", Math.ceil(playerCount / 2));
-  for (const p of players) {
+  for (const p of nonBossPlayers) {
     const div = document.createElement("div");
     div.className = "hp-monitor-card";
     if (p.alive) div.classList.add("is-alive");
     if (!p.alive) div.classList.add("is-dead");
-    if (p.role === "boss") div.classList.add("is-boss");
     const maxHp = getMaxHpForRole(p.role);
     const initial = p.nickname.charAt(0).toUpperCase();
     // 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정
@@ -192,7 +172,7 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   const extendBtn = document.getElementById("extendBtn");
   const hasTimer = phase === "night" || phase === "day_discussion" || phase === "day_vote";
   extendBtn.style.display = hasTimer ? "block" : "none";
-  advanceBtn.textContent = phase === "day_reveal" ? "토론 시작하기" : "다음 단계로 (강제 진행)";
+  advanceBtn.textContent = phase === "day_reveal" ? "토론 시작하기" : "다음 단계로";
 });
 
 socket.on("state:night_result", ({ damageLog }) => showResult("🌙 밤 결과", damageLog));
