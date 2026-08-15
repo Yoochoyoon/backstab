@@ -1784,7 +1784,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-family: 'Noto Sans KR', sans-serif;
   font-weight: 900;
   font-style: italic;
-  font-size: min(5cqw, 5.6vh);
+  font-size: min(8cqw, 9vh);
   color: #FFE500;
   letter-spacing: 0.06em;
   line-height: 1.1;

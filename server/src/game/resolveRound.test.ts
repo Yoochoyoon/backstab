@@ -122,7 +122,7 @@ test("bodyguard_shield halve mode rounds damage down for the target and leaves t
     2,
   );
   assert.equal(updatedPlayers.find((p) => p.id === "boss")!.hp, 4); // 3데미지 -> 절반(내림) 1
-  assert.equal(updatedPlayers.find((p) => p.id === "bg1")!.hp, 4); // 경호원 무피해
+  assert.equal(updatedPlayers.find((p) => p.id === "bg1")!.hp, 4); // 조직원 무피해
 });
 
 test("bodyguard_shield has a 1-round cooldown after use", () => {
@@ -316,7 +316,7 @@ test("checkWinner: 보스와 배신자 단 둘만 남으면 배신자 승리", (
   assert.equal(checkWinner(players), "traitor");
 });
 
-// 경호원이 한 명이라도 남아 있으면 아직 "단 둘"이 아니다.
+// 조직원이 한 명이라도 남아 있으면 아직 "단 둘"이 아니다.
 test("checkWinner: 보스·배신자 외에 생존자가 더 있으면 아직 미결", () => {
   const players = [
     makePlayer({ id: "boss", role: "boss", hp: 3 }),

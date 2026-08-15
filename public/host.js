@@ -147,7 +147,7 @@ function renderLobbyGrid(players) {
   }
 }
 
-// 이름 뒤에 붙는 "(사망 · 스파이)" / "(경호원)" 같은 꼬리표.
+// 이름 뒤에 붙는 "(사망 · 스파이)" / "(조직원)" 같은 꼬리표.
 // 서버가 role을 안 준 살아있는 참가자는 아무것도 붙지 않는다.
 function statusLabel(p) {
   const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";

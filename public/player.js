@@ -351,7 +351,7 @@ socket.on("public:boss_revealed", ({ nickname }) => {
 
 socket.on("player:role_assigned", ({ role, hp }) => {
   myRole = role;
-  const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
+  const roleNames = { boss: "보스", bodyguard: "조직원", spy: "스파이", traitor: "배신자" };
   document.getElementById("roleName").textContent = roleNames[role] ?? role;
   document.getElementById("hpLabel").textContent = `HP ${hp}`;
   document.getElementById("hpBarFill").style.width = "100%";
@@ -451,7 +451,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     renderJudgementPanel();
     renderChatPanel();
     overSection.style.display = "block";
-    const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
+    const roleNames = { boss: "보스", bodyguard: "조직원", spy: "스파이", traitor: "배신자" };
     document.getElementById("myRoleReveal").textContent = `내 역할은 ${roleNames[myRole] ?? myRole}이었습니다.`;
     // phaseLabel/timerLabel은 상단 3박스에 계속 남아있으므로, 게임 종료 후에도
     // 직전 페이즈("투표" 등)의 문구/타이머가 그대로 붙어있지 않게 정리한다.
@@ -629,7 +629,7 @@ socket.on("state:full_sync", (data) => {
   // (players는 publicPlayers()라 보스가 아닌 이상 role이 비공개로 빠져 있다).
   if (data.myRole) {
     myRole = data.myRole;
-    const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
+    const roleNames = { boss: "보스", bodyguard: "조직원", spy: "스파이", traitor: "배신자" };
     document.getElementById("roleName").textContent = roleNames[myRole] ?? myRole;
     document.getElementById("hpLabel").textContent = `HP ${data.myHp}`;
     const myMaxHp = getMaxHpForRole(myRole);

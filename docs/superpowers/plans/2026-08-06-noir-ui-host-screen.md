@@ -280,7 +280,7 @@ if (p.role === "boss") div.classList.add("is-boss");
 - [ ] **Step 4: 테스트**
 
 - 8명 게임 시작 후 보스와 비보스 캐릭터의 HP 감소 시 HP바가 올바른 비율로 줄어드는지 확인
-- 보스 HP 5일 때 100%, 경호원 HP 4일 때 100% 표시되는지 확인
+- 보스 HP 5일 때 100%, 조직원 HP 4일 때 100% 표시되는지 확인
 
 - [ ] **Step 5: 커밋**
 
@@ -976,7 +976,7 @@ git commit -m "feat: add state-based CSS classes for HP, timer, and boss status"
 
 **HP 버그 수정 검증:**
 - [ ] 보스 HP 5 → 4일 때 HP바가 80% 표시되는가
-- [ ] 경호원 HP 4 → 3일 때 HP바가 75% 표시되는가
+- [ ] 조직원 HP 4 → 3일 때 HP바가 75% 표시되는가
 
 **애니메이션:**
 - [ ] 플레이어를 지목하면 카드에 펄스 효과가 있는가

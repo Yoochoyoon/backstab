@@ -10,7 +10,7 @@ const MAX_HP_BY_ROLE = {
 
 const ROLE_NAMES = {
   boss: "보스",
-  bodyguard: "경호원",
+  bodyguard: "조직원",
   spy: "스파이",
   traitor: "배신자",
 };
@@ -105,7 +105,7 @@ const PHASE_LABELS = {
 };
 
 const WINNER_LABELS = {
-  boss: "보스 & 경호원 승리",
+  boss: "보스 & 조직원 승리",
   spy: "스파이 승리",
   traitor: "배신자 승리",
 };
