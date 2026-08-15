@@ -306,6 +306,9 @@ function resolveVote(io: Server, room: Room) {
   io.to(room.code).emit("state:vote_result", {
     damageLog: [],
     topTargetId,
+    // 닉네임을 같이 보낸다. 클라이언트가 id로 이름을 찾게 두면, 그 사람이 방금
+    // 재접속해 id가 바뀐 경우 화면에 "???"로 뜬다(실제 플레이에서 확인됨).
+    topTargetNickname: room.players.find((p) => p.id === topTargetId)?.nickname ?? null,
     tie: false,
     players: publicPlayers(room),
   });

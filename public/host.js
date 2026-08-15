@@ -302,14 +302,17 @@ socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
   showSlide("☀️", "밤 사이 벌어진 일", sub);
 });
 
-socket.on("state:vote_result", ({ tie, finalTie, topTargetId }) => {
+socket.on("state:vote_result", ({ tie, finalTie, topTargetId, topTargetNickname }) => {
+  // 서버가 보내준 닉네임을 우선 쓴다 — id로 찾으면 그 사람이 방금 재접속했을 때 "???"가 된다.
+  const targetName = topTargetNickname ?? (topTargetId ? nameOf(topTargetId) : null);
+
   // 지목만으로는 데미지가 없다(찬반 심판을 거쳐야 한다). damageLog는 항상 비어 있으므로
   // 결과 로그에는 "누가 지목됐는지"를 직접 적어준다.
   let note;
   if (tie) {
     note = finalTie ? "동점 - 데미지 없음" : "동점 - 재투표";
-  } else if (topTargetId) {
-    note = `${nameOf(topTargetId)} 최종 지목 - 심판으로 넘어갑니다`;
+  } else if (targetName) {
+    note = `${targetName} 최종 지목 - 심판으로 넘어갑니다`;
   } else {
     note = "아무도 지목되지 않았습니다";
   }
@@ -318,8 +321,8 @@ socket.on("state:vote_result", ({ tie, finalTie, topTargetId }) => {
   let sub;
   if (tie) {
     sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
-  } else if (topTargetId) {
-    sub = `${nameOf(topTargetId)}가 최종 지목되었습니다`;
+  } else if (targetName) {
+    sub = `${targetName}가 최종 지목되었습니다`;
   } else {
     sub = "아무도 지목되지 않았습니다";
   }
