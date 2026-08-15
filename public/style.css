@@ -534,9 +534,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 /* 상단 3박스: 보스 공개 / 내 역할 / 타이머 */
+/* 보스가 공개되면 상단이 2칸에서 3칸으로 늘어나는데, 폰 폭에서 3등분하면 한 칸이
+   100px도 안 돼 타이머("01:43")가 칸을 뚫고 나갔다. 칸이 9rem보다 좁아지면 줄을
+   바꿔서, 칸 수가 몇 개든 각 칸이 읽을 수 있는 폭을 유지하게 한다. */
 .na-topline {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 2vw;
 }
 
@@ -546,6 +549,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   border-radius: 1.2vh;
   padding: 1.8vh 2.4vw;
   text-align: center;
+  /* 안의 타이머 글자를 이 칸 폭(cqw) 기준으로 재게 한다 — 보스가 공개되면 상단이
+     2칸에서 3칸으로 늘어나 칸이 좁아지는데, 뷰포트 기준(vw)으로만 잡으면 그때 넘친다. */
+  container-type: inline-size;
 }
 
 .na-box--info {
@@ -626,7 +632,8 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .na-box__timer {
   font-family: 'Rubik Mono One', sans-serif;
-  font-size: min(6.4vw, 3.6vh);
+  /* 20cqw는 안전망 — 칸이 예상보다 좁아져도 "01:43"이 칸을 뚫고 나가지 않는다. */
+  font-size: min(6.4vw, 3.6vh, 20cqw);
   color: #FFE500;
   letter-spacing: 0.05em;
   white-space: nowrap;
@@ -1200,12 +1207,13 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   opacity: 0.5;
 }
 
-/* 읽기 전용일 땐 "누가 몇 HP인가"만 보면 되므로 아바타를 납작하게 줄여 카드 높이를
-   낮춘다 — 지목 카드 높이 그대로면 아래 채팅이 화면 밖으로 밀려난다. */
+/* 읽기 전용 목록도 정사각형 비율을 지킨다. 예전엔 카드 높이를 낮추려고 아바타를
+   납작하게(height 4.4vh) 눌렀는데, object-fit:cover와 만나 프로필 사진이 눈코입만
+   남는 가로 띠로 잘려버렸다 — 토론 중에 얼굴로 사람을 알아보는 게 이 목록의 핵심이라
+   높이를 아끼는 것보다 사진이 온전히 보이는 쪽이 낫다(아래는 페이지 스크롤로 처리). */
 .na-target-grid .hp-monitor-card.is-readonly .hp-monitor-card__avatar {
-  aspect-ratio: auto;
-  height: 4.4vh;
-  font-size: min(3cqw, 2.4vh);
+  aspect-ratio: 1 / 1;
+  height: auto;
 }
 
 /* 진행자 화면의 큼직한 "사망" 도장은 낮아진 카드에선 이름 위를 덮어버린다.
@@ -1591,10 +1599,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
    grid item은 기본 min-width:auto라 내용(텍스트·아이콘)이 fr 트랙보다 크면
    줄어들지 않고 tv-upper의 overflow-x:hidden에 그대로 잘려나간다 —
    .top-line과 그 자식들 모두 min-width:0으로 그 기본값을 꺼야 진짜로 줄어든다. */
+/* 가운데 페이즈 칸이 남는 공간을 많이 갖고 있어서 타이머 칸이 "--:--"조차 담지 못하고
+   두 줄로 접혔다. 페이즈 칸을 줄이고 타이머 칸에 그만큼 넘겨 한 줄에 들어가게 한다. */
 .top-line {
   grid-area: topline;
   display: grid;
-  grid-template-columns: 1fr 3fr 2fr;
+  grid-template-columns: 1fr 2.6fr 2.4fr;
   gap: 0.8cqw;
   align-items: stretch;
   min-width: 0;
@@ -1673,8 +1683,10 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   border-radius: 0.8vh;
   padding: 0.6vh 1.6vh;
   font-family: 'Rubik Mono One', sans-serif;
-  font-size: min(6cqw, 7vh);
+  font-size: min(5cqw, 7vh);
   letter-spacing: 0.05em;
+  /* "--:--"가 칸을 살짝 넘으면 두 줄로 접혀 시계가 아니라 잡음처럼 보였다. */
+  white-space: nowrap;
   min-width: 44px;
   min-height: 44px;
   display: flex;
