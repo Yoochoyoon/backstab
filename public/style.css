@@ -1520,7 +1520,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .host-layout[data-phase="night"] .case-badge,
 .host-layout[data-phase="night"] .phase-bar,
 .host-layout[data-phase="night"] .hp-monitor-card,
-.host-layout[data-phase="night"] .boss-sticker {
+.host-layout[data-phase="night"] .boss-sticker,
+.host-layout[data-phase="night"] .progress-timer,
+.host-layout[data-phase="night"] .result-panel {
   background: #000;
   border-color: #fff;
 }
@@ -1530,7 +1532,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .host-layout[data-phase="night"] .phase-bar__label,
 .host-layout[data-phase="night"] .hp-monitor-card__name,
 .host-layout[data-phase="night"] .hp-monitor-card__hp-text,
-.host-layout[data-phase="night"] .boss-sticker__name {
+.host-layout[data-phase="night"] .boss-sticker__name,
+.host-layout[data-phase="night"] .progress-timer,
+.host-layout[data-phase="night"] .result-panel {
   color: #fff;
 }
 
@@ -1538,10 +1542,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   color: #ccc;
 }
 
-.host-layout[data-phase="night"] .progress-timer {
-  background: #fff;
-  border-color: #000;
-  color: #000;
+/* 검정 면 위에서는 진홍 제목이 어두워 안 읽히므로 노랑으로 되돌린다. */
+.host-layout[data-phase="night"] .result-panel .result-title {
+  color: #FFE500;
 }
 
 .host-layout[data-phase="night"] .hp-monitor-card__avatar,
@@ -1660,10 +1663,11 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   align-items: baseline;
   gap: 0.8vh 1.6cqw;
   padding: 1.6vh 2cqw;
-  background: #000;
-  border: 0.5vh solid #fff;
+  /* 사건번호·페이즈 칸과 같은 언어(흰 면 + 검정 테두리 + 검정 글자)로 통일한다. */
+  background: #fff;
+  border: 0.5vh solid #000;
   border-radius: 1vh;
-  color: #fff;
+  color: #000;
   font-weight: 800;
   font-size: min(2.6cqw, 3.4vh);
   line-height: 1.3;
@@ -1677,8 +1681,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: none;
 }
 
+/* 흰 면 위라 노란 글씨는 안 읽힌다 — 제목은 진홍으로 강조한다. */
 .result-panel .result-title {
-  color: #FFE500;
+  color: var(--color-crimson);
   font-weight: 900;
   font-size: min(3cqw, 3.9vh);
 }
@@ -1687,9 +1692,10 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  background: #000;
-  color: #fff;
-  border: 0.5vh solid #fff;
+  /* 사건번호·페이즈 칸과 같은 언어(흰 면 + 검정 테두리 + 검정 글자)로 통일한다. */
+  background: #fff;
+  color: #000;
+  border: 0.5vh solid #000;
   border-radius: 0.8vh;
   padding: 0.6vh 1.6vh;
   font-family: 'Rubik Mono One', sans-serif;
@@ -1770,18 +1776,24 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   padding: 1.6vh 2.4vw 2vh;
 }
 
-/* 보스 역할표: 노란 배지로 강조해서 "보스"라는 역할이 바로 눈에 띄게 한다. */
+/* 보스 역할표: 작은 노란 알약 배지 대신, 크게 기울인 노란 글씨 + 두꺼운 검정 테두리로
+   멀리서도 "보스"가 바로 읽히게 한다. 테두리는 이 프로젝트가 쓰던 다중 text-shadow
+   방식을 그대로 쓰되, 8방향으로 깔아 획이 끊기지 않게 두껍게 만든다. */
 .boss-sticker__label {
-  display: inline-block;
+  display: block;
+  font-family: 'Noto Sans KR', sans-serif;
   font-weight: 900;
-  font-size: min(2cqw, 2.2vh);
-  color: #000;
-  background: #FFE500;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0.3vh 1.2vh;
-  border-radius: 999px;
-  margin-bottom: 0.8vh;
+  font-style: italic;
+  font-size: min(5cqw, 5.6vh);
+  color: #FFE500;
+  letter-spacing: 0.06em;
+  line-height: 1.1;
+  margin-bottom: 0.4vh;
+  text-shadow:
+    -0.35vh -0.35vh 0 #000,  0.35vh -0.35vh 0 #000,
+    -0.35vh  0.35vh 0 #000,  0.35vh  0.35vh 0 #000,
+    -0.35vh  0      0 #000,  0.35vh  0      0 #000,
+     0      -0.35vh 0 #000,  0       0.35vh 0 #000;
 }
 
 .boss-sticker__name {
