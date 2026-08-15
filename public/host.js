@@ -5,7 +5,6 @@ let submittedIds = [];
 
 const PHASE_ICON_MAP = {
   night: "night",
-  day_reveal: "discussion",
   day_discussion: "discussion",
   day_vote: "vote",
   // 심판도 투표의 연장이라 같은 아이콘을 켜둔다.
@@ -268,7 +267,7 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
     document.getElementById("resultLog").textContent = "";
   }
 
-  // day_reveal은 night_result 슬라이드가 이미 그 내용을 보여주므로 따로 안내 슬라이드를 안 띄운다.
+  // 밤 결과는 state:night_result 슬라이드가 따로 띄우므로 여기서 중복해서 안내하지 않는다.
   if (phase === "night") {
     showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
   } else if (phase === "day_discussion") {
@@ -279,9 +278,9 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   const advanceBtn = document.getElementById("advanceBtn");
   const extendBtn = document.getElementById("extendBtn");
   // 페이즈 목록을 하드코딩하는 대신 서버가 준 phaseEndsAt으로 판단한다 — 타이머가 붙는
-  // 페이즈가 늘어나도(예: day_reveal) 여기를 같이 고칠 필요가 없다.
+  // 타이머가 붙는 페이즈가 늘어나도 여기를 같이 고칠 필요가 없다.
   extendBtn.style.display = phaseEndsAt != null ? "block" : "none";
-  advanceBtn.textContent = phase === "day_reveal" ? "토론 시작하기" : "다음 단계로";
+  advanceBtn.textContent = "다음 단계로";
 });
 
 socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {

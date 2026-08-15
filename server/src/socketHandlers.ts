@@ -39,12 +39,7 @@ interface SocketData {
 // 밤에 자유 대화를 허용하면 스파이 합공 조율이 사실상 공개 협의가 돼버린다.
 // (스파이끼리의 밤 신호는 이미 spy:teammate_preview / #spyCoordPanel로 따로 있다.)
 // day_judgement도 포함한다 — 지목된 사람이 변론할 수 있어야 심판 단계가 의미가 있다.
-const CHATTABLE_PHASES = new Set<Phase>([
-  "day_reveal",
-  "day_discussion",
-  "day_vote",
-  "day_judgement",
-]);
+const CHATTABLE_PHASES = new Set<Phase>(["day_discussion", "day_vote", "day_judgement"]);
 const CHAT_MAX_LENGTH = 200;
 const CHAT_MIN_INTERVAL_MS = 400;
 const CHAT_LOG_LIMIT = 200;
@@ -241,7 +236,9 @@ function resolveNight(io: Server, room: Room) {
     damageLog,
     players: publicPlayers(room),
   });
-  scheduleTimedPhase(io, room, "day_reveal", () => startDiscussionPhase(io, room));
+  // 별도의 결과 공개 단계 없이 바로 토론으로 간다. 결과는 슬라이드와
+  // 토론 내내 남아있는 결과 패널로 계속 확인할 수 있다.
+  startDiscussionPhase(io, room);
 }
 
 function startDiscussionPhase(io: Server, room: Room) {
@@ -711,7 +708,6 @@ export function registerSocketHandlers(io: Server) {
       const room = data.roomCode ? getRoom(data.roomCode) : undefined;
       if (!room || !data.isHost) return;
       if (room.phase === "night") resolveNight(io, room);
-      else if (room.phase === "day_reveal") startDiscussionPhase(io, room);
       else if (room.phase === "day_discussion") startVotePhase(io, room);
       else if (room.phase === "day_vote") resolveVote(io, room);
       else if (room.phase === "day_judgement") resolveJudgementPhase(io, room);

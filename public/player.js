@@ -67,7 +67,6 @@ socket.on("server:hello", ({ startedAt }) => {
 // 07룰복잡도온보딩.md: 1~2라운드까지만 짧은 첫판 힌트를 보여주고, 3라운드부터는 자동으로 사라진다.
 const BEGINNER_HINTS = {
   night: "💡 지금은 밤이에요. 위에서 행동을 고르고 대상을 지목한 뒤 '지목 확정'을 누르세요.",
-  day_reveal: "💡 밤 사이 벌어진 일이 공개돼요. 진행자가 토론을 시작할 때까지 잠시 기다리세요.",
   day_discussion: "💡 자유롭게 이야기하며 누가 스파이인지, 배신자인지 추리해보세요.",
   day_vote: "💡 의심되는 사람을 지목하고 '지목 확정'을 누르세요. 최다득표자는 데미지를 입어요.",
 };
@@ -231,9 +230,8 @@ socket.on("state:players", (payload) => {
     renderWaitingList(players);
     renderLeaderControls();
   }
-  if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
-  // 로스터는 페이즈와 무관하게 항상 갱신한다 — 토론 중에도 계속 보여야 하기 때문.
-  renderRoster();
+  // 참가자 목록은 로비를 뺀 모든 페이즈에서 갱신한다 — 토론·심판 중에도 읽기 전용으로 떠 있다.
+  if (currentPhase !== "lobby") renderTargetList();
   // 사망하면 즉시 입력창이 잠겨야 하므로 참가자 상태가 바뀔 때마다 같이 갱신한다.
   renderChatPanel();
 });
@@ -334,7 +332,19 @@ function applyPhase(phase, round, phaseEndsAt) {
   }
 
   if (phase === "game_over") {
-    gameSection.style.display = "none";
+    // 게임 화면은 그대로 두고 조작만 걷어낸다 — 이 시점엔 서버가 전원 역할을 공개하므로
+    // 참가자 목록이 그대로 "누가 무슨 역할이었는지" 최종 결과표가 된다.
+    gameSection.style.display = "flex";
+    document.getElementById("actionSection").style.display = "none";
+    document.getElementById("shieldModeChoices").style.display = "none";
+    document.getElementById("summaryActionRow").style.display = "none";
+    summaryPanel.style.display = "none";
+    submitBtn.style.display = "none";
+    instructionLabel.textContent = "";
+    document.getElementById("targetSection").style.display = "flex";
+    renderTargetList();
+    renderJudgementPanel();
+    renderChatPanel();
     overSection.style.display = "block";
     const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
     document.getElementById("myRoleReveal").textContent = `내 역할은 ${roleNames[myRole] ?? myRole}이었습니다.`;
@@ -342,9 +352,6 @@ function applyPhase(phase, round, phaseEndsAt) {
     // 직전 페이즈("투표" 등)의 문구/타이머가 그대로 붙어있지 않게 정리한다.
     document.getElementById("phaseLabel").textContent = "게임 종료";
     startCountdown(null, document.getElementById("timerLabel"));
-    // 종료 화면에서도 로스터를 그린다 — 이 시점엔 서버가 전원 역할을 공개하므로
-    // 로스터가 그대로 "누가 무슨 역할이었는지" 최종 결과표 역할을 한다.
-    renderRoster();
     return;
   }
 
@@ -352,7 +359,7 @@ function applyPhase(phase, round, phaseEndsAt) {
   document.getElementById("phaseLabel").textContent = PHASE_LABELS[phase];
   startCountdown(phaseEndsAt, document.getElementById("timerLabel"));
 
-  // day_reveal은 night_result 슬라이드가 이미 그 내용을 보여주므로 따로 안내 슬라이드를 안 띄운다.
+  // 밤 결과는 state:night_result 슬라이드가 따로 띄우므로 여기서 중복해서 안내하지 않는다.
   // 호스트 화면 없이도 지금 무슨 상황인지 알 수 있게 참가자 화면에도 똑같이 띄운다.
   if (phase === "night") {
     showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
@@ -404,15 +411,6 @@ function applyPhase(phase, round, phaseEndsAt) {
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     document.getElementById("targetList").innerHTML = "";
-  } else if (phase === "day_reveal") {
-    instructionLabel.textContent = "밤 사이 벌어진 일이 공개됩니다. 진행자가 토론을 시작할 때까지 기다려주세요.";
-    submitBtn.style.display = "none";
-    summaryPanel.style.display = "none";
-    document.getElementById("actionSection").style.display = "none";
-    document.getElementById("targetSection").style.display = "none";
-    document.getElementById("shieldModeChoices").style.display = "none";
-    document.getElementById("summaryActionRow").style.display = "none";
-    document.getElementById("targetList").innerHTML = "";
   } else if (phase === "day_discussion") {
     // 재투표는 토론을 건너뛰고 day_vote -> day_vote로 바로 돌아오므로, "전원 대상"으로
     // 되돌리는 초기화는 여기(토론 진입 시점)에서만 해야 한다 — day_vote 진입 시점에 초기화하면
@@ -424,15 +422,16 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "none";
     summaryPanel.style.display = "none";
     document.getElementById("actionSection").style.display = "none";
-    document.getElementById("targetSection").style.display = "none";
+    // 토론 중에도 같은 목록을 읽기 전용으로 남겨둔다 — 누가 살아있고 HP가 얼마인지
+    // 보면서 이야기해야 하는 단계라, 여기서 목록을 지우면 폰에 아무것도 안 남는다.
+    document.getElementById("targetSection").style.display = "flex";
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
-    document.getElementById("targetList").innerHTML = "";
+    renderTargetList();
   }
 
   updateBeginnerHint(phase, round);
   renderSpyCoordPanel();
-  renderRoster();
   renderChatPanel();
   renderJudgementPanel();
 }
@@ -632,59 +631,9 @@ function renderShieldModeChoices() {
   }
 }
 
-// 이름 뒤 꼬리표 — host.js의 statusLabel()과 같은 규칙.
-// 서버가 role을 안 준 살아있는 참가자에겐 아무것도 안 붙는다.
-function rosterLabel(p) {
-  const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";
-  if (!p.alive) return ` (사망${roleText ? " · " + roleText : ""})`;
-  return roleText ? ` (${roleText})` : "";
-}
-
-// 지목용 목록(#targetList)과 별개로, 페이즈와 무관하게 항상 보이는 읽기 전용 현황판.
-// 온라인 플레이에선 진행자 화면을 같이 볼 수 없으니 이게 각자의 스코어보드가 된다.
-function renderRoster() {
-  const section = document.getElementById("rosterSection");
-  const list = document.getElementById("rosterList");
-  const title = document.getElementById("rosterTitle");
-
-  if (currentPhase === "lobby" || players.length === 0) {
-    section.style.display = "none";
-    return;
-  }
-  section.style.display = "block";
-  title.textContent =
-    currentPhase === "game_over"
-      ? "최종 결과"
-      : `생존자 현황 (${players.filter((p) => p.alive).length}/${players.length})`;
-
-  list.innerHTML = "";
-  for (const p of players) {
-    // 지목 카드(renderTargetList)와 같은 hp-monitor-card 구조를 그대로 재사용한다.
-    const li = document.createElement("li");
-    li.className = "hp-monitor-card";
-    if (!p.alive) li.classList.add("is-dead");
-    if (p.id === myId) li.classList.add("is-me");
-    const maxHp = getMaxHpForRole(p.role);
-    li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}
-      <div class="hp-monitor-card__avatar">${p.nickname.charAt(0).toUpperCase()}</div>
-      <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}${p.id === myId ? " (나)" : ""}${rosterLabel(p)}</div>
-        <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
-        <div class="hp-monitor-card__pips"></div>
-      </div>`;
-    renderPipBar(
-      li.querySelector(".hp-monitor-card__pips"),
-      p.hp,
-      maxHp,
-      p.role === "boss" ? "hp-pip--yellow" : "hp-pip--red",
-    );
-    list.appendChild(li);
-  }
-}
-
 // 서버의 CHATTABLE_PHASES와 같은 목록 — 밤은 정보 비대칭 유지를 위해 제외.
 // 심판 단계는 지목된 사람이 변론해야 하므로 포함한다.
-const CHATTABLE_PHASES = ["day_reveal", "day_discussion", "day_vote", "day_judgement"];
+const CHATTABLE_PHASES = ["day_discussion", "day_vote", "day_judgement"];
 
 // 지목된 대상자를 크게 띄우고 찬반만 받는 화면.
 function renderJudgementPanel() {
@@ -761,7 +710,7 @@ socket.on("state:judgement_result", ({ nickname, approve, oppose, passed, player
   );
   judgementTarget = null;
   myJudgement = null;
-  renderRoster();
+  if (currentPhase !== "lobby") renderTargetList();
 });
 
 function appendChatMessage({ nickname, text }) {
@@ -818,46 +767,69 @@ socket.on("chat:message", (message) => {
   appendChatMessage(message);
 });
 
+// 참가자 목록은 화면에 하나만 둔다. 밤·투표에는 "고를 수 있는 대상"만 보여주고,
+// 토론·심판·종료에는 같은 자리에 전원을 읽기 전용으로 보여준다.
+function isPickingPhase() {
+  return currentPhase === "night" || currentPhase === "day_vote";
+}
+
 function renderTargetList() {
   const el = document.getElementById("targetList");
   const titleEl = document.getElementById("targetSectionTitle");
   el.innerHTML = "";
   const myself = players.find((p) => p.id === myId);
+  const picking = isPickingPhase();
+  const iAmDead = myself ? !myself.alive : false;
 
-  if (myself && !myself.alive) {
+  if (picking && iAmDead) {
     titleEl.textContent = "사망 - 관전 중입니다.";
     document.getElementById("submitBtn").style.display = "none";
-    updateSummary();
-    return;
-  }
-
-  if (currentPhase === "night" && selectedAction === "bodyguard_oath") {
+  } else if (picking && currentPhase === "night" && selectedAction === "bodyguard_oath") {
     titleEl.textContent = "대상 지목 없이 자신을 보호합니다.";
     updateSummary();
     return;
+  } else if (picking) {
+    titleEl.textContent =
+      currentPhase === "day_vote" ? "2. 투표할 대상을 선택하세요" : "2. 대상을 선택하세요";
+  } else {
+    const aliveCount = players.filter((p) => p.alive).length;
+    titleEl.textContent =
+      currentPhase === "game_over" ? "최종 결과" : `생존자 ${aliveCount}/${players.length}`;
   }
 
-  titleEl.textContent = currentPhase === "day_vote" ? "2. 투표할 대상을 선택하세요" : "2. 대상을 선택하세요";
-
-  const targetable = players.filter((p) => {
+  const selectable = picking && !iAmDead;
+  const shown = players.filter((p) => {
+    if (!selectable) return true; // 읽기 전용일 땐 나와 사망자까지 전부 보여준다
     if (p.id === myId) return false;
     if (!p.alive) return false;
     if (currentPhase === "day_vote" && voteAllowedTargetIds && !voteAllowedTargetIds.includes(p.id)) return false;
     return true;
   });
-  for (const p of targetable) {
+
+  for (const p of shown) {
     // 진행상황 화면(host.js renderGrid)과 같은 hp-monitor-card 구조를 그대로 재사용한다.
     const li = document.createElement("li");
     li.className = "hp-monitor-card";
-    if (p.id === selectedTargetId) li.classList.add("selected");
+    if (selectable && p.id === selectedTargetId) li.classList.add("selected");
+    if (!p.alive) li.classList.add("is-dead");
+    if (p.id === myId) li.classList.add("is-me");
+    if (!selectable) li.classList.add("is-readonly");
+
     const maxHp = getMaxHpForRole(p.role);
     const initial = p.nickname.charAt(0).toUpperCase();
-    // 밤 행동/투표 제출 여부 — 나뿐 아니라 다른 사람이 제출했는지도 이 화면만으로 알 수 있게 배지로 표시한다.
     const submitted = submittedIds.includes(p.id);
+    const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";
+    // 역할은 서버가 흘려보낼 때만 붙는다(보스 상시 / 사망자 / 게임 종료 후 전원).
+    const suffix = !p.alive
+      ? ` (사망${roleText ? " · " + roleText : ""})`
+      : roleText && !selectable
+        ? ` (${roleText})`
+        : "";
+
     li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}
       <div class="hp-monitor-card__avatar">${initial}</div>
       <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}</div>
+        <div class="hp-monitor-card__name">${p.nickname}${p.id === myId ? " (나)" : ""}${suffix}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
         <div class="hp-monitor-card__pips"></div>
       </div>`;
@@ -867,14 +839,17 @@ function renderTargetList() {
       maxHp,
       p.role === "boss" ? "hp-pip--yellow" : "hp-pip--red",
     );
-    li.addEventListener("click", () => {
-      selectedTargetId = p.id;
-      renderTargetList();
-      // 스파이는 제출 전에 고르는 순간부터 동료에게 실시간으로 대상을 공유한다.
-      if (myRole === "spy" && currentPhase === "night" && currentRound > 1) {
-        socket.emit("player:preview_night_target", { targetId: p.id });
-      }
-    });
+
+    if (selectable) {
+      li.addEventListener("click", () => {
+        selectedTargetId = p.id;
+        renderTargetList();
+        // 스파이는 제출 전에 고르는 순간부터 동료에게 실시간으로 대상을 공유한다.
+        if (myRole === "spy" && currentPhase === "night" && currentRound > 1) {
+          socket.emit("player:preview_night_target", { targetId: p.id });
+        }
+      });
+    }
     el.appendChild(li);
   }
   updateSummary();

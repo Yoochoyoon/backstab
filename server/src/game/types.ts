@@ -3,7 +3,9 @@ export type Role = "boss" | "bodyguard" | "spy" | "traitor";
 export type Phase =
   | "lobby"
   | "night"
-  | "day_reveal"
+  // 밤이 끝나면 곧바로 토론으로 간다. 예전엔 사이에 "결과 공개" 단계가 있었지만
+  // 진행자가 버튼을 눌러줘야만 넘어가는 데다, 밤 결과는 결과 슬라이드와
+  // 토론 내내 남는 결과 패널로 이미 충분히 보인다.
   | "day_discussion"
   | "day_vote"
   // 지목 투표에서 한 명이 정해진 뒤, 그 사람을 실제로 칠지 찬반으로 정하는 심판 단계.
@@ -129,11 +131,6 @@ export const ROLE_COMPOSITIONS: Record<number, Role[]> = {
 
 export const PHASE_DURATIONS_MS: Partial<Record<Phase, number>> = {
   night: 2 * 60 * 1000,
-  // 원래 결과 공개는 타이머 없이 진행자가 "토론 시작하기"를 눌러야만 넘어갔다
-  // (다같이 TV를 보고 있다가 진행자가 판단해서 넘기는 오프라인 전제).
-  // 온라인에선 진행자가 없거나 자리를 비울 수 있어 여기서 게임이 영구 정지하므로
-  // 타이머를 준다. 진행자가 있으면 여전히 버튼으로 먼저 넘길 수 있다.
-  day_reveal: 30 * 1000,
   day_discussion: 5 * 60 * 1000,
   day_vote: 2 * 60 * 1000,
   // 지목된 사람의 변론과 찬반 결정만 하면 되므로 지목 투표보다 짧게 잡는다.

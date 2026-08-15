@@ -32,7 +32,6 @@ function renderPipBar(container, hp, maxHp, colorClass) {
 const PHASE_LABELS = {
   lobby: "대기실",
   night: "🌙 밤 - 대상 지목",
-  day_reveal: "☀ 결과 공개",
   day_discussion: "💬 토론",
   day_vote: "🗳 투표",
   day_judgement: "⚖ 최종 심판",

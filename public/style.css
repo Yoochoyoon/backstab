@@ -1014,35 +1014,33 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-size: min(1.7vh, 3.2cqw);
 }
 
-/* 상시 생존자 현황판 — 지목 그리드와 같은 카드를 쓰되 누를 수 없는 읽기 전용이다.
-   온라인 플레이에서 진행자 화면 대신 각자 폰에 띄우는 스코어보드. */
-.na-target-grid--readonly .hp-monitor-card {
+/* 토론·심판·종료에는 같은 목록이 읽기 전용으로 남는다(고를 수 없음). */
+.na-target-grid .hp-monitor-card.is-readonly {
   cursor: default;
 }
 
 /* 사망자는 흐리게 — 살아있는 사람이 한눈에 구분되게. */
-.na-target-grid--readonly .hp-monitor-card.is-dead {
+.na-target-grid .hp-monitor-card.is-dead {
   opacity: 0.5;
 }
 
-/* 지목 카드와 달리 현황판은 "누가 몇 HP인가"만 보면 되므로, 정사각형 아바타를
-   납작하게 줄여 카드 높이를 낮춘다. 토론 페이즈에 현황판과 채팅을 한 화면에서
-   같이 봐야 하는데, 지목 카드 높이 그대로면 채팅이 화면 밖으로 밀려난다. */
-.na-target-grid--readonly .hp-monitor-card__avatar {
+/* 읽기 전용일 땐 "누가 몇 HP인가"만 보면 되므로 아바타를 납작하게 줄여 카드 높이를
+   낮춘다 — 지목 카드 높이 그대로면 아래 채팅이 화면 밖으로 밀려난다. */
+.na-target-grid .hp-monitor-card.is-readonly .hp-monitor-card__avatar {
   aspect-ratio: auto;
   height: 4.4vh;
   font-size: min(3cqw, 2.4vh);
 }
 
-/* 진행자 화면의 큼직한 "사망" 도장은 낮아진 현황판 카드에선 이름 위를 덮어버린다.
-   여기서는 흐리게 처리 + 이름 옆 "(사망 · 역할)" 라벨로 이미 충분히 드러나므로 뺀다. */
-.na-target-grid--readonly .hp-monitor-card.is-dead::before,
-.na-target-grid--readonly .hp-monitor-card.is-dead::after {
+/* 진행자 화면의 큼직한 "사망" 도장은 낮아진 카드에선 이름 위를 덮어버린다.
+   흐리게 처리 + 이름 옆 "(사망 · 역할)" 라벨로 이미 충분히 드러나므로 뺀다. */
+.na-target-grid .hp-monitor-card.is-dead::before,
+.na-target-grid .hp-monitor-card.is-dead::after {
   content: none;
 }
 
 /* 목록에서 내 카드를 바로 찾을 수 있게 테두리를 강조한다. */
-.na-target-grid--readonly .hp-monitor-card.is-me {
+.na-target-grid .hp-monitor-card.is-me {
   border-color: #FFE500;
 }
 
@@ -1424,22 +1422,51 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   text-align: center;
 }
 
-/* 밤/투표 결과 로그 — 세로 <br> 나열 대신 가로 한 줄로 감싸 흐르게(모바일에서는 자동 줄바꿈). */
-#resultLog {
+/* 오른쪽 열: 결과 패널(위) + 보스 카드(아래). 보스 카드는 남는 높이만 차지하게 해서
+   결과가 항상 먼저 자리를 잡는다. */
+.tv-right {
+  grid-area: boss;
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.6vh 1.6vw;
-  color: #fff;
-  font-weight: 700;
-  font-size: min(2.6cqw, 2.4vh);
-  line-height: 1.4;
+  flex-direction: column;
+  gap: 1vh;
+  min-height: 0;
 }
 
-#resultLog .result-title {
+.tv-right .boss-sticker {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 밤/투표 결과 — 방 전체가 보는 정보라, 사건 번호보다 확실히 크게 띄운다.
+   예전엔 화면 맨 아래 버튼 위에 눌려 글자가 잘려 보였다. */
+.result-panel {
+  flex: none;
+  box-sizing: border-box;
+  min-height: 18%;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: baseline;
+  gap: 0.8vh 1.6cqw;
+  padding: 1.6vh 2cqw;
+  background: #000;
+  border: 0.5vh solid #fff;
+  border-radius: 1vh;
+  color: #fff;
+  font-weight: 800;
+  font-size: min(2.6cqw, 3.4vh);
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.result-panel:empty {
+  display: none;
+}
+
+.result-panel .result-title {
   color: #FFE500;
   font-weight: 900;
-  font-size: min(2.9cqw, 2.7vh);
+  font-size: min(3cqw, 3.9vh);
 }
 
 .progress-timer {
@@ -1463,10 +1490,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .boss-sticker {
   position: relative;
-  grid-area: boss;
+  /* grid-area는 이제 감싸는 .tv-right가 갖는다. */
   display: flex;
   flex-direction: column;
-  height: 100%;
   box-sizing: border-box;
   background: #fff;
   border: 0.5vh solid #000;
@@ -1717,20 +1743,23 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: rgba(0, 0, 0, 0.72);
+  /* 너무 진하게 덮으면 이름·역할이 안 읽힌다 — 죽은 티는 나되 글자는 보이는 정도로. */
+  background: rgba(0, 0, 0, 0.45);
 }
 
+/* 도장은 사진 영역(카드 위쪽) 한가운데에 찍는다. 카드 정중앙에 두면 이름·HP 위를
+   덮어서 "누가 무슨 역할로 죽었는지"를 못 읽게 된다. */
 .hp-monitor-card.is-dead::after {
   content: '사망';
   position: absolute;
-  top: 50%;
+  top: 22%;
   left: 50%;
   transform: translate(-50%, -50%) rotate(-30deg);
   pointer-events: none;
   color: #E4180F;
   font-family: 'Noto Sans KR', sans-serif;
   font-weight: 900;
-  font-size: min(9.6cqw, 10.8vh);
+  font-size: min(7.6cqw, 8.4vh);
   letter-spacing: 0.1em;
   white-space: nowrap;
   text-shadow:
@@ -1776,22 +1805,19 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   padding: 1vh 1.2vh;
 }
 
+/* 닉네임은 절대 잘리지 않게 한다. 예전엔 한 줄 말줄임이라 조금만 길어도
+   "봇3 (스파..."처럼 뒤가 사라졌는데, 이름과 역할은 이 카드에서 제일 중요한 정보다. */
 .hp-monitor-card__name {
   font-weight: 900;
   color: #000;
   font-size: min(2.8cqw, 3.1vh);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.15;
 }
 
-/* 게임이 끝나면 이름 옆 역할 공개가 이 화면의 결론이다. 평소의 한 줄 말줄임을
-   그대로 두면 "봇3 (스파..." 처럼 잘려서 정작 제일 중요한 정보가 안 보인다. */
+/* 종료 화면은 이름 뒤에 역할까지 붙어 길어지므로 한 단계 작게. */
 .host-layout[data-phase="game_over"] .hp-monitor-card__name {
-  white-space: normal;
-  overflow: visible;
-  text-overflow: clip;
-  line-height: 1.15;
   font-size: min(2.4cqw, 2.7vh);
 }
 
@@ -1801,9 +1827,6 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   content: none;
 }
 
-.host-layout[data-phase="game_over"] .hp-monitor-card.is-dead::before {
-  background: rgba(0, 0, 0, 0.45);
-}
 
 .hp-monitor-card__hp-text {
   font-weight: 800;
@@ -1816,14 +1839,17 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   justify-content: center;
   gap: 0.5vh;
-  flex-wrap: wrap;
+  /* 인원이 많아 카드가 좁아져도 한 줄로 유지한다 — 접히면 3+1처럼 어색하게 나뉜다. */
+  flex-wrap: nowrap;
 }
 
 /* HP 조각(pip) — 보스 카드(노란색)·플레이어 카드(빨간색) 공용 */
 .hp-pip {
   width: min(3cqw, 3.4vh);
   height: min(3cqw, 3.4vh);
-  min-width: 10px;
+  /* 좁은 카드에서는 최소 크기를 고집하지 않고 같이 줄어들게 둔다. */
+  flex: 0 1 auto;
+  min-width: 6px;
   min-height: 10px;
   border: 0.15vh solid #000;
   border-radius: 2px;

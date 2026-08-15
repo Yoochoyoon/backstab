@@ -77,14 +77,20 @@
         <div class="hp-monitor__grid" id="playerGrid"></div>
       </div>
 
-      <div class="boss-sticker" id="bossBanner" style="display: none">
-        <span class="boss-sticker__submit-badge">✓ 제출완료</span>
-        <div class="boss-sticker__avatar" id="bossAvatar"></div>
-        <div class="boss-sticker__body">
-          <span class="boss-sticker__label">보스</span>
-          <div class="boss-sticker__name" id="bossName"></div>
-          <div class="boss-sticker__hp-text" id="bossHpText"></div>
-          <div class="boss-sticker__pips" id="bossHpPips"></div>
+      <!-- 오른쪽 열: 결과를 위에 크게 두고 보스 카드는 그 아래로 낮춘다.
+           예전엔 결과가 화면 맨 아래 버튼 위에 눌려 거의 안 보였다. -->
+      <div class="tv-right">
+        <div id="resultLog" class="result-panel"></div>
+
+        <div class="boss-sticker" id="bossBanner" style="display: none">
+          <span class="boss-sticker__submit-badge">✓ 제출완료</span>
+          <div class="boss-sticker__avatar" id="bossAvatar"></div>
+          <div class="boss-sticker__body">
+            <span class="boss-sticker__label">보스</span>
+            <div class="boss-sticker__name" id="bossName"></div>
+            <div class="boss-sticker__hp-text" id="bossHpText"></div>
+            <div class="boss-sticker__pips" id="bossHpPips"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -100,7 +106,6 @@
 
     <div class="control-lower">
       <div id="winnerLabel" style="display: none"></div>
-      <div id="resultLog"></div>
       <div class="control-buttons">
         <button id="extendBtn" class="btn-extend">시간 연장</button>
         <button id="advanceBtn" class="btn-advance">다음 단계로</button>
