@@ -22,6 +22,31 @@ document.getElementById("createRoomBtn").addEventListener("click", () => {
     document.getElementById("roomCode").textContent = res.code;
     createSection.style.display = "none";
     lobbySection.style.display = "flex";
+    // 플레이어와 마찬가지로 세션을 저장해둔다 — 진행자 소켓이 끊겼다 재연결돼도
+    // (네트워크 끊김, 화면 꺼짐 등) 진행자 권한을 자동으로 되찾을 수 있게 한다.
+    if (res.sessionId) {
+      localStorage.setItem("hostSessionId", res.sessionId);
+      localStorage.setItem("hostRoomCode", res.code);
+    }
+  });
+});
+
+// 페이지 로드 시(재연결 포함) 저장된 진행자 세션이 있으면 자동으로 권한을 복구한다.
+window.addEventListener("load", () => {
+  const sessionId = localStorage.getItem("hostSessionId");
+  const roomCode = localStorage.getItem("hostRoomCode");
+  if (!sessionId || !roomCode) return;
+
+  socket.emit("host:reconnect", { sessionId, roomCode }, (res) => {
+    if (res.ok) {
+      currentRoomCode = roomCode;
+      document.getElementById("roomCode").textContent = roomCode;
+      createSection.style.display = "none";
+      lobbySection.style.display = "flex"; // 아직 로비 단계면 이대로, 게임 중이면 곧이어 오는 state:phase_changed가 gameControlSection으로 바꿔준다.
+    } else {
+      localStorage.removeItem("hostSessionId");
+      localStorage.removeItem("hostRoomCode");
+    }
   });
 });
 

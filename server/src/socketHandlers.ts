@@ -244,14 +244,51 @@ export function registerSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
     const data = socket.data as SocketData;
 
-    socket.on("host:create_room", (_payload, callback: (res: { code: string }) => void) => {
-      const room = createRoom(socket.id);
-      data.roomCode = room.code;
-      data.isHost = true;
-      socket.join(room.code);
-      callback({ code: room.code });
-      emitState(io, room);
-    });
+    socket.on(
+      "host:create_room",
+      (_payload, callback: (res: { code: string; sessionId: string }) => void) => {
+        const room = createRoom(socket.id);
+        data.roomCode = room.code;
+        data.isHost = true;
+        socket.join(room.code);
+        // 플레이어와 마찬가지로 세션을 발급해둔다 — 없으면 진행자 소켓이 한 번이라도
+        // 끊겼다 재연결됐을 때(네트워크 끊김, 화면 꺼짐 등) 새 연결은 진행자 권한이
+        // 전혀 없어서 다음 단계 진행/시작 등 모든 진행자 명령이 조용히 무시된다.
+        const sessionId = createSession("__host__", room.code);
+        callback({ code: room.code, sessionId });
+        emitState(io, room);
+      },
+    );
+
+    socket.on(
+      "host:reconnect",
+      (
+        payload: { sessionId: string; roomCode: string },
+        callback: (res: { ok: boolean; error?: string }) => void,
+      ) => {
+        const session = getSession(payload.sessionId);
+        if (!session || session.playerId !== "__host__") {
+          return callback({ ok: false, error: "세션을 찾을 수 없습니다." });
+        }
+        if (session.roomCode !== payload.roomCode) {
+          return callback({ ok: false, error: "방 코드가 일치하지 않습니다." });
+        }
+        const room = getRoom(session.roomCode);
+        if (!room) return callback({ ok: false, error: "방을 찾을 수 없습니다." });
+
+        data.roomCode = room.code;
+        data.isHost = true;
+        socket.join(room.code);
+        callback({ ok: true });
+        // 현재 상태를 방 전체(재연결한 진행자 포함)에 다시 뿌려서 화면을 복원시킨다.
+        emitState(io, room);
+        // 게임이 이미 끝난 상태로 재연결했다면 승자 문구도 다시 보내야
+        // winnerLabel이 빈 채로 남지 않는다.
+        if (room.winner) {
+          io.to(room.code).emit("state:game_over", { winner: room.winner, players: publicPlayers(room) });
+        }
+      },
+    );
 
     socket.on(
       "viewer:join_room",
