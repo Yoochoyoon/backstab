@@ -150,6 +150,13 @@ socket.on("state:submission_progress", ({ submittedIds: ids }) => {
   if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
 });
 
+// host.js는 이 이벤트로 winnerLabel을 채우지만 player.js엔 리스너가 아예 없어서
+// 게임 종료 화면의 승자 문구가 항상 빈 채로 남아있던 버그 — 재접속 시에도 서버가
+// 같은 이벤트를 다시 보내주므로 리스너 하나로 두 경우 다 해결된다.
+socket.on("state:game_over", ({ winner }) => {
+  document.getElementById("winnerLabel").textContent = WINNER_LABELS[winner] ?? winner;
+});
+
 socket.on("public:boss_revealed", ({ nickname }) => {
   bossBanner.style.display = "block";
   document.getElementById("bossName").textContent = nickname;
@@ -275,7 +282,6 @@ function applyPhase(phase, round, phaseEndsAt) {
     spyTeammatePreview = {}; // 새 밤 라운드마다 지난 라운드의 동료 선택 현황을 지운다.
     renderActionChoices();
   } else if (phase === "day_vote") {
-    voteAllowedTargetIds = null; // 서버가 별도로 알려주지 않는 한 전원 대상
     instructionLabel.textContent = "투표할 대상을 지목하세요.";
     submitBtn.style.display = "block";
     summaryPanel.style.display = "block";
@@ -294,6 +300,12 @@ function applyPhase(phase, round, phaseEndsAt) {
     document.getElementById("summaryActionRow").style.display = "none";
     document.getElementById("targetList").innerHTML = "";
   } else if (phase === "day_discussion") {
+    // 재투표는 토론을 건너뛰고 day_vote -> day_vote로 바로 돌아오므로, "전원 대상"으로
+    // 되돌리는 초기화는 여기(토론 진입 시점)에서만 해야 한다 — day_vote 진입 시점에 초기화하면
+    // 방금 state:vote_result가 넣어준 동점자 제한(voteAllowedTargetIds)을 재투표 시작과 동시에
+    // 지워버려서, 재투표인데도 아무나 찍을 수 있게 되고 서버는 그 표를 조용히 버려
+    // (제출은 눌렀는데 "제출완료" 배지가 안 뜨는) 버그가 생긴다.
+    voteAllowedTargetIds = null;
     instructionLabel.textContent = "자유롭게 토론하세요.";
     submitBtn.style.display = "none";
     summaryPanel.style.display = "none";

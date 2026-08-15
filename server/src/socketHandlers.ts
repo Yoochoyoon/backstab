@@ -282,6 +282,14 @@ export function registerSocketHandlers(io: Server) {
         callback({ ok: true });
         // 현재 상태를 방 전체(재연결한 진행자 포함)에 다시 뿌려서 화면을 복원시킨다.
         emitState(io, room);
+        // public:boss_revealed는 게임 시작 시 딱 한 번만 나가는 이벤트라, 그 이후에
+        // 진행자가 재연결하면 새 소켓은 이걸 못 받아서 보스 배너가 영영 안 뜬다.
+        if (room.phase !== "lobby") {
+          const boss = room.players.find((p) => p.role === "boss");
+          if (boss) {
+            io.to(room.code).emit("public:boss_revealed", { nickname: boss.nickname });
+          }
+        }
         // 게임이 이미 끝난 상태로 재연결했다면 승자 문구도 다시 보내야
         // winnerLabel이 빈 채로 남지 않는다.
         if (room.winner) {
