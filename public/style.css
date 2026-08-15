@@ -618,14 +618,14 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
     -0.26vh  0.26vh 0 #000, 0.26vh  0.26vh 0 #000;
 }
 
-/* 1. 스킬을 선택하세요 — 2열 그리드 */
+/* 1. 스킬을 선택하세요 — 설명이 길어질 수 있어 1열로 쌓는다(2열이면 좁은 화면에서 설명이 짓눌린다). */
 .na-skill-grid {
   list-style: none;
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2.6vw;
+  grid-template-columns: 1fr;
+  gap: 1.6vh;
 }
 
 .na-skill-card {
@@ -633,7 +633,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   background: rgba(143, 32, 40, 0.22);
   border: 0.35vh solid var(--color-crimson);
   border-radius: 1.2vh;
-  padding: 2.6vh 2.4vw;
+  padding: 2vh 4vw;
   text-align: center;
   cursor: pointer;
   transition: border-color 150ms ease-out, background 150ms ease-out;
@@ -645,8 +645,8 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .na-skill-card__icon {
-  width: min(10vw, 6.2vh);
-  height: min(10vw, 6.2vh);
+  width: min(7vw, 5vh);
+  height: min(7vw, 5vh);
   margin: 0 auto 1vh;
   color: #ccc;
 }
@@ -669,9 +669,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .na-skill-card__sub {
   display: block;
-  color: #bbb;
-  font-size: min(2.6vw, 1.5vh);
-  line-height: 1.5;
+  color: #ddd;
+  font-size: min(3.4vw, 1.8vh);
+  line-height: 1.6;
 }
 
 /* 2. 대상을 선택하세요 — 3열 카드 그리드. 진행상황 화면의 참가자 HP 모니터 카드
@@ -953,6 +953,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh; /* 모바일 브라우저의 주소창 접힘/펼침만큼 100vh가 실제 보이는 영역보다
+    커서, 100vh로 고정하면 overflow:hidden과 만나 하단(control-lower의 결과/버튼)이
+    화면 밖으로 잘려 보이지 않는다 — dvh를 지원하는 브라우저에서는 이 값이 우선한다. */
   gap: 0.6vh;
   padding: clamp(16px, 2.4cqw, 36px);
   box-sizing: border-box;
@@ -1078,6 +1081,31 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   flex-direction: column;
   justify-content: flex-end;
   gap: 1vh;
+}
+
+#winnerLabel {
+  color: #FFE500;
+  font-weight: 900;
+  font-size: min(3.2cqw, 3vh);
+  text-align: center;
+}
+
+/* 밤/투표 결과 로그 — 세로 <br> 나열 대신 가로 한 줄로 감싸 흐르게(모바일에서는 자동 줄바꿈). */
+#resultLog {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.6vh 1.6vw;
+  color: #fff;
+  font-weight: 700;
+  font-size: min(2.6cqw, 2.4vh);
+  line-height: 1.4;
+}
+
+#resultLog .result-title {
+  color: #FFE500;
+  font-weight: 900;
+  font-size: min(2.9cqw, 2.7vh);
 }
 
 .progress-timer {
@@ -1606,7 +1634,16 @@ button,
 .phase-slide__sub {
   color: #fff;
   margin-top: 2.2vh;
-  font-size: min(4.6vw, 2.4vh);
+  font-size: min(5.4vw, 2.8vh);
   line-height: 1.7;
   white-space: pre-line;
+  text-shadow:
+    -0.16vh -0.16vh 0 #000, 0.16vh -0.16vh 0 #000,
+    -0.16vh  0.16vh 0 #000, 0.16vh  0.16vh 0 #000;
+}
+
+@media (max-width: 640px) {
+  .phase-slide__icon { font-size: min(22vw, 12vh); }
+  .phase-slide__title { font-size: min(11vw, 6vh); }
+  .phase-slide__sub { font-size: min(6.5vw, 2.6vh); }
 }

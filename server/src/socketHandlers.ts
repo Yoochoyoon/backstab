@@ -303,7 +303,13 @@ export function registerSocketHandlers(io: Server) {
         const player = room.players.find((p) => p.id === session.playerId);
         if (!player) return callback({ ok: false, error: "플레이어를 찾을 수 없습니다." });
 
-        // 기존 socket 연결 대체
+        // 기존 socket 연결 대체.
+        // player.id/session.playerId를 새 socket.id로 갱신하지 않으면, 이후
+        // io.to(player.id).emit(...)이나 room.players.find(p => p.id === socket.id) 같은
+        // id 기반 조회가 전부 예전(끊어진) id를 가리킨 채로 남아 재접속한 플레이어는
+        // 밤 행동/투표 제출도, 스킬 옵션 수신도 조용히 실패하게 된다.
+        player.id = socket.id;
+        session.playerId = socket.id;
         data.roomCode = room.code;
         socket.join(room.code);
 

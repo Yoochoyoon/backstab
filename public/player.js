@@ -31,12 +31,32 @@ const BEGINNER_HINTS = {
 };
 
 const ACTION_META = {
-  attack: { title: "기본 공격", sub: "데미지 1", icon: "target" },
-  boss_execute: { title: "긴급 처형", sub: "이번 공격 데미지 2배 (게임당 1회)", icon: "crown" },
-  bodyguard_shield: { title: "육탄 방어", sub: "대상 보호 (쿨타임 1라운드)", icon: "shield" },
-  bodyguard_oath: { title: "충성심 서약", sub: "이번 라운드 피해 무효화 (게임당 1회)", icon: "shield-check" },
-  spy_disrupt: { title: "교란 작전", sub: "대상 이번 라운드 행동 봉쇄 (게임당 1회)", icon: "wifi-off" },
-  traitor_smile: { title: "흑막의 미소", sub: "공격력+1, 사망자 발생 시 HP+2 (게임당 1회)", icon: "dagger" },
+  attack: { title: "기본 공격", sub: "지목한 대상에게 데미지 1을 입힙니다.", icon: "target" },
+  boss_execute: {
+    title: "긴급 처형",
+    sub: "지목한 대상에게 데미지 2를 입힙니다. 게임 중 단 한 번만 사용할 수 있습니다.",
+    icon: "crown",
+  },
+  bodyguard_shield: {
+    title: "육탄 방어",
+    sub: "지목한 대상을 이번 라운드 공격으로부터 보호합니다 (데미지를 대신 받거나 절반으로 경감 — 아래에서 선택). 한 번 쓰면 1라운드 동안 다시 쓸 수 없습니다.",
+    icon: "shield",
+  },
+  bodyguard_oath: {
+    title: "충성심 서약",
+    sub: "대상 지목 없이 이번 라운드 자신이 입는 모든 피해를 무효화합니다. 게임 중 단 한 번만 사용할 수 있습니다.",
+    icon: "shield-check",
+  },
+  spy_disrupt: {
+    title: "교란 작전",
+    sub: "지목한 대상의 이번 라운드 행동을 전부 무효화합니다. 게임 중 단 한 번만 사용할 수 있습니다.",
+    icon: "wifi-off",
+  },
+  traitor_smile: {
+    title: "흑막의 미소",
+    sub: "지목한 대상에게 데미지 2를 입힙니다. 이번 라운드에 사망자가 나오면 사망자 한 명당 HP 2를 회복합니다. 게임 중 단 한 번만 사용할 수 있습니다.",
+    icon: "dagger",
+  },
 };
 
 const ACTION_ICONS = {
@@ -168,7 +188,8 @@ function applyPhase(phase, round, phaseEndsAt) {
   const myself = players.find((p) => p.id === myId);
   if (myself) {
     document.getElementById("hpLabel").textContent = `HP ${myself.hp}${myself.alive ? "" : " (사망)"}`;
-    document.getElementById("hpBarFill").style.width = `${Math.max(0, (myself.hp / 5) * 100)}%`;
+    const myMaxHp = getMaxHpForRole(myRole);
+    document.getElementById("hpBarFill").style.width = `${Math.max(0, (myself.hp / myMaxHp) * 100)}%`;
   }
 
   if (phase === "game_over") {
@@ -320,7 +341,8 @@ socket.on("state:full_sync", (data) => {
     const roleNames = { boss: "보스", bodyguard: "경호원", spy: "스파이", traitor: "배신자" };
     document.getElementById("roleName").textContent = roleNames[myRole] ?? myRole;
     document.getElementById("hpLabel").textContent = `HP ${data.myHp}`;
-    document.getElementById("hpBarFill").style.width = "100%";
+    const myMaxHp = getMaxHpForRole(myRole);
+    document.getElementById("hpBarFill").style.width = `${Math.max(0, (data.myHp / myMaxHp) * 100)}%`;
     roleCard.style.display = "block";
   }
 

@@ -104,9 +104,10 @@ function nameOf(id) {
 }
 
 function showResult(title, damageLog, note) {
-  const lines = damageLog.map((d) => `${nameOf(d.targetId)} -${d.damage}`);
+  const lines = damageLog.map((d) => `<span class="result-item">${nameOf(d.targetId)} -${d.damage}</span>`);
   document.getElementById("resultLog").innerHTML =
-    `<strong>${title}</strong><br>` + (lines.join("<br>") || note || "이번엔 아무 일도 없었습니다.");
+    `<span class="result-title">${title}</span>` +
+    (lines.join("") || `<span class="result-item">${note || "이번엔 아무 일도 없었습니다."}</span>`);
 }
 
 socket.on("state:players", ({ players: ps }) => {
