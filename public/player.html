@@ -23,6 +23,8 @@
     </div>
 
     <button id="joinBtn" class="join-start-btn">입장하기</button>
+    <!-- 진행자용 화면 없이 폰만으로 방을 열 수 있게 한다. 방 코드는 비워두고 이름만 적으면 된다. -->
+    <button id="createRoomBtn" class="join-create-btn">이름만 적고 새 방 만들기</button>
     <p class="error join-error" id="errorLabel"></p>
   </section>
 
@@ -30,11 +32,17 @@
   <section id="waitingSection" class="hero hero--stack join-hero" style="display:none">
     <div class="hero-card"></div>
     <h1 class="hero-title join-title">BACKSTAB</h1>
-    <p class="waiting-message">대기중<br><br>진행자가 시작하면<br>자동으로 시작됩니다.</p>
+    <p class="waiting-message" id="waitingMessage">대기중<br><br>진행자가 시작하면<br>자동으로 시작됩니다.</p>
+    <!-- 내가 방을 만든 사람일 때만 뜬다 (state:players의 leaderId로 판단). -->
+    <div class="waiting-code" id="waitingCode" style="display:none">
+      <span class="waiting-code__label">방코드</span>
+      <span class="waiting-code__value" id="waitingCodeValue">----</span>
+    </div>
     <div class="waiting-list-panel">
       <span class="waiting-list-label">대기실</span>
       <ul class="waiting-list" id="waitingPlayerList"></ul>
     </div>
+    <button id="leaderStartBtn" class="join-start-btn" style="display:none" disabled>시작</button>
   </section>
 
   <!-- 밤 행동/투표 화면 (Figma "Android Compact - 3") -->
@@ -108,6 +116,24 @@
     <div id="resultSection" class="na-panel" style="display:none">
       <h3 class="na-panel__title">결과</h3>
       <div id="resultLog"></div>
+    </div>
+
+    <!-- 생존자/HP 상시 표시. 오프라인에선 진행자 화면(TV)을 다같이 보면 됐지만,
+         온라인에선 각자 폰이 유일한 화면이라 토론 중에도 이게 계속 보여야 한다. -->
+    <div id="rosterSection" class="na-panel" style="display:none">
+      <h3 class="na-panel__title" id="rosterTitle">생존자 현황</h3>
+      <ul id="rosterList" class="na-target-grid na-target-grid--readonly"></ul>
+    </div>
+
+    <!-- 낮 페이즈 토론용 채팅. 밤에는 숨긴다(서버도 밤 발언을 거부한다). -->
+    <div id="chatSection" class="na-panel" style="display:none">
+      <h3 class="na-panel__title" id="chatTitle">토론</h3>
+      <ul id="chatLog" class="chat-log"></ul>
+      <form id="chatForm" class="chat-form">
+        <input id="chatInput" class="chat-input" maxlength="200" placeholder="메시지 입력" autocomplete="off" />
+        <button type="submit" id="chatSendBtn" class="chat-send-btn">전송</button>
+      </form>
+      <p class="chat-notice" id="chatNotice" style="display:none"></p>
     </div>
 
     <div id="overSection" class="na-panel" style="display:none">

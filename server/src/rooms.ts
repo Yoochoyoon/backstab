@@ -44,6 +44,7 @@ export function createRoom(hostId: string): Room {
     code,
     hostId,
     players: [],
+    chatLog: [],
     round: 0,
     phase: "lobby",
     nightActions: {},

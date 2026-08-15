@@ -9,6 +9,7 @@ window.addEventListener("load", () => {
     socket.emit("player:reconnect", { sessionId, roomCode }, (res) => {
       if (res.ok) {
         console.log("재연결 성공");
+        myRoomCode = roomCode;
         joinSection.style.display = "none";
         document.getElementById("postJoinScreen").style.display = "flex";
         // 나머지 화면 상태는 state:full_sync 이벤트로 받음
@@ -85,6 +86,8 @@ let selectedTargetId = null;
 let submittedIds = [];
 let spyTeammates = [];
 let spyTeammatePreview = {};
+let leaderId = null;
+let myRoomCode = null;
 let myNightOptions = { canAttack: true, specialActions: [] };
 let selectedAction = "attack";
 let selectedShieldMode = "absorb";
@@ -117,6 +120,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
       errorLabel.textContent = res.error;
       return;
     }
+    myRoomCode = code;
     // sessionId 저장
     if (res.sessionId) {
       localStorage.setItem("sessionId", res.sessionId);
@@ -125,6 +129,35 @@ document.getElementById("joinBtn").addEventListener("click", () => {
     errorLabel.textContent = "";
     joinSection.style.display = "none";
     waitingSection.style.display = "flex";
+  });
+});
+
+// 폰만으로 방을 만든다 — 방 코드 입력 없이 이름만 받고, 만든 사람이 방장이 된다.
+document.getElementById("createRoomBtn").addEventListener("click", () => {
+  localStorage.removeItem("sessionId");
+  localStorage.removeItem("roomCode");
+
+  const nickname = document.getElementById("nicknameInput").value.trim();
+  socket.emit("player:create_room", { nickname }, (res) => {
+    if (!res.ok) {
+      errorLabel.textContent = res.error;
+      return;
+    }
+    myRoomCode = res.code;
+    if (res.sessionId) {
+      localStorage.setItem("sessionId", res.sessionId);
+      localStorage.setItem("roomCode", res.code);
+    }
+    errorLabel.textContent = "";
+    joinSection.style.display = "none";
+    waitingSection.style.display = "flex";
+  });
+});
+
+document.getElementById("leaderStartBtn").addEventListener("click", () => {
+  // 서버는 data.isHost로만 권한을 확인하므로 진행자 화면과 같은 이벤트를 그대로 쓴다.
+  socket.emit("host:start_game", {}, (res) => {
+    if (res && !res.ok) errorLabel.textContent = res.error;
   });
 });
 
@@ -138,10 +171,37 @@ function renderWaitingList(list) {
   }
 }
 
+// 방장에게만 방 코드와 시작 버튼을 보여준다. 방장이 아니면 기존 "진행자가 시작하면..." 안내 그대로.
+function renderLeaderControls() {
+  const isLeader = leaderId != null && leaderId === myId;
+  const startBtn = document.getElementById("leaderStartBtn");
+  const codeBox = document.getElementById("waitingCode");
+
+  startBtn.style.display = isLeader ? "block" : "none";
+  codeBox.style.display = isLeader && myRoomCode ? "flex" : "none";
+  if (!isLeader) return;
+
+  document.getElementById("waitingCodeValue").textContent = myRoomCode ?? "----";
+  document.getElementById("waitingMessage").innerHTML =
+    "이 방코드를 친구들에게 알려주세요.<br><br>6명이 모이면 시작할 수 있습니다.";
+
+  const enough = players.length >= MIN_PLAYERS && players.length <= MAX_PLAYERS;
+  startBtn.disabled = !enough;
+  startBtn.textContent = enough ? "시작" : `시작 (${players.length}/${MIN_PLAYERS}~${MAX_PLAYERS}명)`;
+}
+
 socket.on("state:players", (payload) => {
   players = payload.players;
-  if (currentPhase === "lobby") renderWaitingList(players);
+  if (payload.leaderId !== undefined) leaderId = payload.leaderId;
+  if (currentPhase === "lobby") {
+    renderWaitingList(players);
+    renderLeaderControls();
+  }
   if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
+  // 로스터는 페이즈와 무관하게 항상 갱신한다 — 토론 중에도 계속 보여야 하기 때문.
+  renderRoster();
+  // 사망하면 즉시 입력창이 잠겨야 하므로 참가자 상태가 바뀔 때마다 같이 갱신한다.
+  renderChatPanel();
 });
 
 // 밤 행동/투표 제출 현황 — 참여자 화면만으로도 누가 이미 제출했고 누가 안 했는지 알 수 있게 한다.
@@ -217,7 +277,14 @@ function applyPhase(phase, round, phaseEndsAt) {
   currentRound = round;
   selectedTargetId = null;
   selectedAction = "attack";
-  resultSection.style.display = "none";
+
+  // 직전 결과는 결과공개~토론~투표 내내 띄워둔다. 예전엔 페이즈가 바뀔 때마다 무조건
+  // 숨겨서, 결과가 2.4초짜리 슬라이드로 스치고 나면 다시 확인할 방법이 없었다 —
+  // 다같이 진행자 화면을 보던 오프라인에선 괜찮았지만 온라인에선 정보가 통째로 사라진다.
+  // 새 라운드의 밤이 시작될 때만 지운다.
+  if (phase === "night" || phase === "lobby") {
+    resultSection.style.display = "none";
+  }
 
   // 새 페이즈가 시작되면 지난 페이즈에 눌러둔 "지목완료" 상태를 원래대로 되돌린다.
   const submitBtnReset = document.getElementById("submitBtn");
@@ -241,6 +308,9 @@ function applyPhase(phase, round, phaseEndsAt) {
     // 직전 페이즈("투표" 등)의 문구/타이머가 그대로 붙어있지 않게 정리한다.
     document.getElementById("phaseLabel").textContent = "게임 종료";
     startCountdown(null, document.getElementById("timerLabel"));
+    // 종료 화면에서도 로스터를 그린다 — 이 시점엔 서버가 전원 역할을 공개하므로
+    // 로스터가 그대로 "누가 무슨 역할이었는지" 최종 결과표 역할을 한다.
+    renderRoster();
     return;
   }
 
@@ -318,6 +388,8 @@ function applyPhase(phase, round, phaseEndsAt) {
 
   updateBeginnerHint(phase, round);
   renderSpyCoordPanel();
+  renderRoster();
+  renderChatPanel();
 }
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
@@ -407,6 +479,15 @@ socket.on("state:full_sync", (data) => {
   waitingSection.style.display = "none";
 
   submittedIds = data.submittedIds || [];
+  // 서버는 진작 이 값을 보내주고 있었는데 클라이언트가 읽지 않아서, 재투표 도중
+  // 재접속하면 동점자 제한이 풀린 채로 보였다 — 그러면 엉뚱한 사람을 찍게 되고
+  // 서버는 그 표를 조용히 버린다(제출했는데 배지가 안 뜨는 그 증상).
+  voteAllowedTargetIds = data.voteAllowedTargetIds ?? null;
+
+  // 재접속 시 그동안 오간 대화를 복원한다. 중복으로 쌓이지 않게 먼저 비운다.
+  document.getElementById("chatLog").innerHTML = "";
+  for (const message of data.chatLog ?? []) appendChatMessage(message);
+
   applyPhase(data.phase, data.round, data.phaseEndsAt);
 });
 
@@ -476,6 +557,113 @@ function renderShieldModeChoices() {
     el.appendChild(li);
   }
 }
+
+// 이름 뒤 꼬리표 — host.js의 statusLabel()과 같은 규칙.
+// 서버가 role을 안 준 살아있는 참가자에겐 아무것도 안 붙는다.
+function rosterLabel(p) {
+  const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";
+  if (!p.alive) return ` (사망${roleText ? " · " + roleText : ""})`;
+  return roleText ? ` (${roleText})` : "";
+}
+
+// 지목용 목록(#targetList)과 별개로, 페이즈와 무관하게 항상 보이는 읽기 전용 현황판.
+// 온라인 플레이에선 진행자 화면을 같이 볼 수 없으니 이게 각자의 스코어보드가 된다.
+function renderRoster() {
+  const section = document.getElementById("rosterSection");
+  const list = document.getElementById("rosterList");
+  const title = document.getElementById("rosterTitle");
+
+  if (currentPhase === "lobby" || players.length === 0) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "block";
+  title.textContent =
+    currentPhase === "game_over"
+      ? "최종 결과"
+      : `생존자 현황 (${players.filter((p) => p.alive).length}/${players.length})`;
+
+  list.innerHTML = "";
+  for (const p of players) {
+    // 지목 카드(renderTargetList)와 같은 hp-monitor-card 구조를 그대로 재사용한다.
+    const li = document.createElement("li");
+    li.className = "hp-monitor-card";
+    if (!p.alive) li.classList.add("is-dead");
+    if (p.id === myId) li.classList.add("is-me");
+    const maxHp = getMaxHpForRole(p.role);
+    li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}
+      <div class="hp-monitor-card__avatar">${p.nickname.charAt(0).toUpperCase()}</div>
+      <div class="hp-monitor-card__body">
+        <div class="hp-monitor-card__name">${p.nickname}${p.id === myId ? " (나)" : ""}${rosterLabel(p)}</div>
+        <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
+        <div class="hp-monitor-card__pips"></div>
+      </div>`;
+    renderPipBar(
+      li.querySelector(".hp-monitor-card__pips"),
+      p.hp,
+      maxHp,
+      p.role === "boss" ? "hp-pip--yellow" : "hp-pip--red",
+    );
+    list.appendChild(li);
+  }
+}
+
+// 서버의 CHATTABLE_PHASES와 같은 목록 — 밤은 정보 비대칭 유지를 위해 제외.
+const CHATTABLE_PHASES = ["day_reveal", "day_discussion", "day_vote"];
+
+function appendChatMessage({ nickname, text }) {
+  const log = document.getElementById("chatLog");
+  const li = document.createElement("li");
+  li.className = "chat-log__item";
+  // 방 안에서 닉네임 중복은 서버가 막으므로 닉네임 비교로 내 메시지를 구분해도 안전하다.
+  if (nickname === players.find((p) => p.id === myId)?.nickname) li.classList.add("is-mine");
+  li.innerHTML = `<span class="chat-log__name"></span><span class="chat-log__text"></span>`;
+  // 사용자 입력이라 textContent로 넣는다 — innerHTML로 넣으면 채팅으로 남의 화면에
+  // 마크업을 주입할 수 있다.
+  li.querySelector(".chat-log__name").textContent = nickname;
+  li.querySelector(".chat-log__text").textContent = text;
+  log.appendChild(li);
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderChatPanel() {
+  const section = document.getElementById("chatSection");
+  if (!CHATTABLE_PHASES.includes(currentPhase)) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "block";
+
+  // 사망자는 읽기만 가능(03라운드진행.md) — 서버도 같은 규칙으로 거부하지만,
+  // 입력창을 아예 잠가서 헛수고하지 않게 한다.
+  const me = players.find((p) => p.id === myId);
+  const muted = me ? !me.alive : false;
+  document.getElementById("chatInput").disabled = muted;
+  document.getElementById("chatSendBtn").disabled = muted;
+  const notice = document.getElementById("chatNotice");
+  notice.style.display = muted ? "block" : "none";
+  notice.textContent = muted ? "사망해서 대화에 참여할 수 없습니다. 읽기만 가능합니다." : "";
+}
+
+document.getElementById("chatForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  socket.emit("chat:send", { text }, (res) => {
+    if (res && !res.ok) {
+      const notice = document.getElementById("chatNotice");
+      notice.style.display = "block";
+      notice.textContent = res.error;
+      return;
+    }
+    input.value = "";
+  });
+});
+
+socket.on("chat:message", (message) => {
+  appendChatMessage(message);
+});
 
 function renderTargetList() {
   const el = document.getElementById("targetList");

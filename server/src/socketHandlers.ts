@@ -20,6 +20,17 @@ interface SocketData {
   isHost?: boolean;
 }
 
+// 채팅이 열리는 페이즈. 밤은 일부러 뺐다 — 밤의 정보 비대칭이 이 게임의 핵심이라
+// 밤에 자유 대화를 허용하면 스파이 합공 조율이 사실상 공개 협의가 돼버린다.
+// (스파이끼리의 밤 신호는 이미 spy:teammate_preview / #spyCoordPanel로 따로 있다.)
+const CHATTABLE_PHASES = new Set<Phase>(["day_reveal", "day_discussion", "day_vote"]);
+const CHAT_MAX_LENGTH = 200;
+const CHAT_MIN_INTERVAL_MS = 400;
+const CHAT_LOG_LIMIT = 200;
+
+// 소켓별 마지막 발언 시각 — 연타 방지용.
+const lastChatAt = new Map<string, number>();
+
 function publicPlayers(room: Room) {
   return room.players.map((p) => ({
     id: p.id,
@@ -33,10 +44,26 @@ function publicPlayers(room: Room) {
   }));
 }
 
+// 게임이 끝난 뒤에는 살아남은 사람 역할까지 전부 공개한다 — 사회적 추리 게임에서
+// "누가 스파이였는지" 확인하는 순간이 제일 재미있는 부분이라, 여기서까지 가리면 안 된다.
+function revealedPlayers(room: Room) {
+  return room.players.map((p) => ({
+    id: p.id,
+    nickname: p.nickname,
+    hp: p.hp,
+    alive: p.alive,
+    role: p.role,
+  }));
+}
+
 function emitState(io: Server, room: Room) {
   // player.js re-derives its own HP from the players array on phase_changed,
   // so state:players must arrive first or it reads the stale pre-round-start snapshot.
-  io.to(room.code).emit("state:players", { players: publicPlayers(room) });
+  // 게임이 끝났으면 역할을 더 가릴 이유가 없다 — 종료 화면·로스터가 전부
+  // state:players를 쓰므로 여기서 한 번만 갈아끼우면 모든 화면에 공개된다.
+  const players = room.phase === "game_over" ? revealedPlayers(room) : publicPlayers(room);
+  // leaderId: 방장 겸 플레이어 모드에서 누구에게 "게임 시작" 버튼을 보여줄지 판단하는 데 쓴다.
+  io.to(room.code).emit("state:players", { players, leaderId: room.hostId });
   io.to(room.code).emit("state:phase_changed", {
     phase: room.phase,
     round: room.round,
@@ -129,7 +156,7 @@ function endGame(io: Server, room: Room, winner: Role) {
   room.phase = "game_over";
   room.winner = winner;
   room.phaseEndsAt = null;
-  io.to(room.code).emit("state:game_over", { winner, players: publicPlayers(room) });
+  io.to(room.code).emit("state:game_over", { winner, players: revealedPlayers(room) });
   emitState(io, room);
 }
 
@@ -161,14 +188,13 @@ function resolveNight(io: Server, room: Room) {
     return;
   }
 
-  clearPhaseTimer(room);
-  room.phase = "day_reveal";
-  room.phaseEndsAt = null;
+  // night_result를 emitState보다 먼저 보내야 클라이언트가 결과 슬라이드를 띄운 뒤
+  // 페이즈 전환을 처리한다 — 순서가 바뀌면 슬라이드가 결과 없이 먼저 떠버린다.
   io.to(room.code).emit("state:night_result", {
     damageLog,
     players: publicPlayers(room),
   });
-  emitState(io, room);
+  scheduleTimedPhase(io, room, "day_reveal", () => startDiscussionPhase(io, room));
 }
 
 function startDiscussionPhase(io: Server, room: Room) {
@@ -240,6 +266,25 @@ function advanceToNextRound(io: Server, room: Room) {
   startNightPhase(io, room);
 }
 
+// 방 만들기/입장 양쪽이 같은 닉네임 규칙을 쓰도록 한 곳에 모아둔다.
+function nicknameError(room: Room, nickname: string): string | null {
+  if (!nickname) return "닉네임을 입력해주세요.";
+  if (nickname.length > 7) return "닉네임은 최대 7자입니다.";
+  if (room.players.some((p) => p.nickname === nickname)) return "이미 사용 중인 닉네임입니다.";
+  return null;
+}
+
+function addPlayer(room: Room, id: string, nickname: string) {
+  room.players.push({
+    id,
+    nickname,
+    role: null,
+    hp: 0,
+    alive: true,
+    abilities: defaultAbilityState(),
+  });
+}
+
 export function registerSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
     const data = socket.data as SocketData;
@@ -293,7 +338,7 @@ export function registerSocketHandlers(io: Server) {
         // 게임이 이미 끝난 상태로 재연결했다면 승자 문구도 다시 보내야
         // winnerLabel이 빈 채로 남지 않는다.
         if (room.winner) {
-          io.to(room.code).emit("state:game_over", { winner: room.winner, players: publicPlayers(room) });
+          io.to(room.code).emit("state:game_over", { winner: room.winner, players: revealedPlayers(room) });
         }
       },
     );
@@ -310,6 +355,41 @@ export function registerSocketHandlers(io: Server) {
       },
     );
 
+    // 진행자용 화면(/host) 없이, 참가자 한 명이 방을 만들고 그대로 플레이어로 참가한다.
+    // 이 소켓이 방장(room.hostId)이 되어 시작/진행 권한을 겸한다 —
+    // 06컴포넌트테크구현.md의 "진행자도 역할을 겸해 참가할 수 있다"와 같은 방향이고,
+    // 온라인에서 진행자용으로 사람을 한 명 더 구해야 하는 부담을 없앤다.
+    socket.on(
+      "player:create_room",
+      (
+        payload: { nickname: string },
+        callback: (res: {
+          ok: boolean;
+          error?: string;
+          code?: string;
+          playerId?: string;
+          sessionId?: string;
+        }) => void,
+      ) => {
+        const room = createRoom(socket.id);
+        const nickname = (payload.nickname ?? "").trim();
+        const invalid = nicknameError(room, nickname);
+        if (invalid) {
+          // 방금 만든 빈 방이 유령으로 남지 않게 되돌린다.
+          deleteRoom(room.code);
+          return callback({ ok: false, error: invalid });
+        }
+
+        addPlayer(room, socket.id, nickname);
+        data.roomCode = room.code;
+        data.isHost = true;
+        socket.join(room.code);
+        const sessionId = createSession(socket.id, room.code);
+        callback({ ok: true, code: room.code, playerId: socket.id, sessionId });
+        emitState(io, room);
+      },
+    );
+
     socket.on(
       "player:join_room",
       (
@@ -321,20 +401,10 @@ export function registerSocketHandlers(io: Server) {
         if (room.phase !== "lobby") return callback({ ok: false, error: "이미 시작된 게임입니다." });
         if (room.players.length >= MAX_PLAYERS) return callback({ ok: false, error: `방이 가득 찼습니다 (최대 ${MAX_PLAYERS}명).` });
         const nickname = (payload.nickname ?? "").trim();
-        if (!nickname) return callback({ ok: false, error: "닉네임을 입력해주세요." });
-        if (nickname.length > 7) return callback({ ok: false, error: "닉네임은 최대 7자입니다." });
-        if (room.players.some((p) => p.nickname === nickname)) {
-          return callback({ ok: false, error: "이미 사용 중인 닉네임입니다." });
-        }
+        const invalid = nicknameError(room, nickname);
+        if (invalid) return callback({ ok: false, error: invalid });
 
-        room.players.push({
-          id: socket.id,
-          nickname,
-          role: null,
-          hp: 0,
-          alive: true,
-          abilities: defaultAbilityState(),
-        });
+        addPlayer(room, socket.id, nickname);
         data.roomCode = room.code;
         socket.join(room.code);
         const sessionId = createSession(socket.id, room.code);
@@ -369,8 +439,16 @@ export function registerSocketHandlers(io: Server) {
         // io.to(player.id).emit(...)이나 room.players.find(p => p.id === socket.id) 같은
         // id 기반 조회가 전부 예전(끊어진) id를 가리킨 채로 남아 재접속한 플레이어는
         // 밤 행동/투표 제출도, 스킬 옵션 수신도 조용히 실패하게 된다.
+        // 방장 겸 플레이어(player:create_room으로 만든 방)가 재접속한 경우, 방장 권한도
+        // 새 소켓으로 같이 옮겨야 한다. 안 그러면 폰 화면이 한 번 꺼졌다 돌아온 것만으로
+        // 방장이 시작/진행 버튼을 영영 잃는다.
+        const wasLeader = room.hostId === session.playerId;
         player.id = socket.id;
         session.playerId = socket.id;
+        if (wasLeader) {
+          room.hostId = socket.id;
+          data.isHost = true;
+        }
         data.roomCode = room.code;
         socket.join(room.code);
 
@@ -388,6 +466,8 @@ export function registerSocketHandlers(io: Server) {
           submittedIds: currentSubmittedIds(room),
           voteAllowedTargetIds: room.voteAllowedTargetIds,
           phaseEndsAt: room.phaseEndsAt,
+          // 재접속하면 그동안 오간 대화가 통째로 사라지므로 같이 복원해준다.
+          chatLog: room.chatLog,
         });
       },
     );
@@ -461,6 +541,40 @@ export function registerSocketHandlers(io: Server) {
       emitSubmissionProgress(io, room);
     });
 
+    socket.on(
+      "chat:send",
+      (payload: { text: string }, callback?: (res: { ok: boolean; error?: string }) => void) => {
+        const room = data.roomCode ? getRoom(data.roomCode) : undefined;
+        if (!room) return callback?.({ ok: false, error: "방을 찾을 수 없습니다." });
+        if (!CHATTABLE_PHASES.has(room.phase)) {
+          return callback?.({ ok: false, error: "지금은 대화할 수 없습니다." });
+        }
+        const player = room.players.find((p) => p.id === socket.id);
+        if (!player) return callback?.({ ok: false, error: "참가자만 대화할 수 있습니다." });
+        // 03라운드진행.md: 사망자는 생존자에게 어떤 정보도 전달할 수 없다. 읽기만 가능.
+        if (!player.alive) return callback?.({ ok: false, error: "사망자는 대화할 수 없습니다." });
+
+        const text = (payload?.text ?? "").trim().slice(0, CHAT_MAX_LENGTH);
+        if (!text) return callback?.({ ok: false, error: "내용을 입력해주세요." });
+
+        const now = Date.now();
+        const last = lastChatAt.get(socket.id) ?? 0;
+        if (now - last < CHAT_MIN_INTERVAL_MS) {
+          return callback?.({ ok: false, error: "너무 빠르게 보내고 있습니다." });
+        }
+        lastChatAt.set(socket.id, now);
+
+        const message = { nickname: player.nickname, text, at: now };
+        room.chatLog.push(message);
+        // 재접속 복원용으로만 쓰는 로그라 최근 것만 남긴다 — 무한히 쌓이면 메모리만 먹는다.
+        if (room.chatLog.length > CHAT_LOG_LIMIT) {
+          room.chatLog.splice(0, room.chatLog.length - CHAT_LOG_LIMIT);
+        }
+        io.to(room.code).emit("chat:message", message);
+        callback?.({ ok: true });
+      },
+    );
+
     socket.on("host:advance_phase", () => {
       const room = data.roomCode ? getRoom(data.roomCode) : undefined;
       if (!room || !data.isHost) return;
@@ -487,6 +601,7 @@ export function registerSocketHandlers(io: Server) {
     });
 
     socket.on("disconnect", () => {
+      lastChatAt.delete(socket.id);
       const roomCode = data.roomCode;
       if (!roomCode) return;
 

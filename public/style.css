@@ -330,6 +330,50 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   padding: 1.4vh 4vh;
 }
 
+/* 진행자 화면 없이 폰만으로 방을 여는 버튼 — 입장하기가 주 동선이라
+   같은 형태를 쓰되 노란 채움 대신 외곽선만 둬서 한 단계 낮은 위계로 보이게 한다. */
+.join-create-btn {
+  --btn-accent: #FFE500;
+  position: relative;
+  z-index: 4;
+  width: auto;
+  min-height: 44px;
+  padding: 1vh 3vh;
+  background: transparent;
+  border: 0.35vh solid #FFE500;
+  border-radius: 1vh;
+  color: #FFE500;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
+  font-size: min(2vh, 3.8cqw);
+  cursor: pointer;
+}
+
+/* 대기 화면의 방코드 — 방장에게만 보인다. */
+.waiting-code {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 2vw;
+  transform: skewX(-8deg);
+}
+
+.waiting-code__label {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(2.4vh, 4.4cqw);
+  color: #FFE500;
+}
+
+.waiting-code__value {
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: min(4.4vh, 8cqw);
+  letter-spacing: 0.4vw;
+  color: #FFE500;
+}
+
 .join-error {
   position: relative;
   z-index: 4;
@@ -710,6 +754,122 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .na-target-grid .hp-monitor-card.confirmed {
   border-color: #2ECC71;
   box-shadow: 0 0 0 0.25vh #2ECC71;
+}
+
+/* 토론용 채팅 — 오프라인에선 입으로 하던 토론을 온라인에서 대체하는 부분이다. */
+.chat-log {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  /* 로그가 길어져도 패널이 무한정 늘어나 페이지를 밀어내지 않게 높이를 고정하고
+     안에서만 스크롤한다. */
+  max-height: 26vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vh;
+}
+
+.chat-log__item {
+  display: flex;
+  gap: 1.4vw;
+  align-items: baseline;
+  font-size: min(1.9vh, 3.6cqw);
+  line-height: 1.35;
+  /* 긴 단어/URL이 가로 스크롤을 만들지 않게 강제로 줄바꿈한다. */
+  overflow-wrap: anywhere;
+}
+
+.chat-log__name {
+  flex: none;
+  font-weight: 900;
+  color: #FFE500;
+}
+
+.chat-log__item.is-mine .chat-log__name {
+  color: #2ECC71;
+}
+
+.chat-form {
+  display: flex;
+  gap: 1.6vw;
+  margin-top: 1.2vh;
+}
+
+.chat-input {
+  flex: 1;
+  /* 전역 input 규칙의 margin-bottom:8px이 전송 버튼과 높이를 어긋나게 해서 여기서 지운다. */
+  margin-bottom: 0;
+  min-width: 0;
+  padding: 1vh 1.6vh;
+  border: 0.3vh solid #000;
+  border-radius: 0.8vh;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: min(1.9vh, 3.6cqw);
+}
+
+.chat-input:disabled {
+  background: #ddd;
+  color: #777;
+}
+
+.chat-send-btn {
+  flex: none;
+  /* 전역 button 규칙이 width:100%라, flex:none만 두면 버튼이 줄 전체를 먹고
+     입력창이 25px까지 찌그러진다. 여기서 auto로 되돌려야 한다. */
+  width: auto;
+  padding: 1vh 2.4vh;
+  background: #000;
+  border: 0.3vh solid #FFE500;
+  border-radius: 0.8vh;
+  color: #FFE500;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(1.9vh, 3.6cqw);
+  cursor: pointer;
+}
+
+.chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.chat-notice {
+  margin: 0.8vh 0 0;
+  color: #FF6B6B;
+  font-size: min(1.7vh, 3.2cqw);
+}
+
+/* 상시 생존자 현황판 — 지목 그리드와 같은 카드를 쓰되 누를 수 없는 읽기 전용이다.
+   온라인 플레이에서 진행자 화면 대신 각자 폰에 띄우는 스코어보드. */
+.na-target-grid--readonly .hp-monitor-card {
+  cursor: default;
+}
+
+/* 사망자는 흐리게 — 살아있는 사람이 한눈에 구분되게. */
+.na-target-grid--readonly .hp-monitor-card.is-dead {
+  opacity: 0.5;
+}
+
+/* 지목 카드와 달리 현황판은 "누가 몇 HP인가"만 보면 되므로, 정사각형 아바타를
+   납작하게 줄여 카드 높이를 낮춘다. 토론 페이즈에 현황판과 채팅을 한 화면에서
+   같이 봐야 하는데, 지목 카드 높이 그대로면 채팅이 화면 밖으로 밀려난다. */
+.na-target-grid--readonly .hp-monitor-card__avatar {
+  aspect-ratio: auto;
+  height: 4.4vh;
+  font-size: min(3cqw, 2.4vh);
+}
+
+/* 진행자 화면의 큼직한 "사망" 도장은 낮아진 현황판 카드에선 이름 위를 덮어버린다.
+   여기서는 흐리게 처리 + 이름 옆 "(사망 · 역할)" 라벨로 이미 충분히 드러나므로 뺀다. */
+.na-target-grid--readonly .hp-monitor-card.is-dead::before,
+.na-target-grid--readonly .hp-monitor-card.is-dead::after {
+  content: none;
+}
+
+/* 목록에서 내 카드를 바로 찾을 수 있게 테두리를 강조한다. */
+.na-target-grid--readonly .hp-monitor-card.is-me {
+  border-color: #FFE500;
 }
 
 .na-target-card__tag {

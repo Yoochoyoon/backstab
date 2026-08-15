@@ -98,6 +98,14 @@ function renderLobbyGrid(players) {
   }
 }
 
+// 이름 뒤에 붙는 "(사망 · 스파이)" / "(경호원)" 같은 꼬리표.
+// 서버가 role을 안 준 살아있는 참가자는 아무것도 붙지 않는다.
+function statusLabel(p) {
+  const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";
+  if (!p.alive) return ` (사망${roleText ? " · " + roleText : ""})`;
+  return roleText ? ` (${roleText})` : "";
+}
+
 function renderGrid() {
   const grid = document.getElementById("playerGrid");
   grid.innerHTML = "";
@@ -116,12 +124,11 @@ function renderGrid() {
     // 밤 행동/투표 제출 여부 — 누가 이미 제출했고 누가 안 했는지 한눈에 보이게 배지로 표시한다.
     const submitted = p.alive && submittedIds.includes(p.id);
     // 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정
-    // 사망한 참가자는 남은 사람들의 토론에 도움이 되도록 역할도 함께 공개한다
-    // (publicPlayers()가 사망자에 한해 role을 흘려보낸다).
-    const deadLabel = p.alive ? "" : ` (사망${p.role ? " · " + (ROLE_NAMES[p.role] ?? p.role) : ""})`;
+    // 역할은 서버가 흘려보낼 때만 표시된다: 사망자는 남은 사람들의 토론에 도움이 되도록
+    // 게임 도중에도 공개되고, 게임이 끝나면 살아남은 사람 역할까지 전부 공개된다.
     div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${initial}</div>
       <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}${deadLabel}</div>
+        <div class="hp-monitor-card__name">${p.nickname}${statusLabel(p)}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
         <div class="hp-monitor-card__pips"></div>
       </div>`;
@@ -227,8 +234,9 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   }
   const advanceBtn = document.getElementById("advanceBtn");
   const extendBtn = document.getElementById("extendBtn");
-  const hasTimer = phase === "night" || phase === "day_discussion" || phase === "day_vote";
-  extendBtn.style.display = hasTimer ? "block" : "none";
+  // 페이즈 목록을 하드코딩하는 대신 서버가 준 phaseEndsAt으로 판단한다 — 타이머가 붙는
+  // 페이즈가 늘어나도(예: day_reveal) 여기를 같이 고칠 필요가 없다.
+  extendBtn.style.display = phaseEndsAt != null ? "block" : "none";
   advanceBtn.textContent = phase === "day_reveal" ? "토론 시작하기" : "다음 단계로";
 });
 

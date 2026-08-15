@@ -56,10 +56,17 @@ export interface DamageEntry {
   damage: number;
 }
 
+export interface ChatMessage {
+  nickname: string;
+  text: string;
+  at: number;
+}
+
 export interface Room {
   code: string;
   hostId: string;
   players: Player[];
+  chatLog: ChatMessage[];
   round: number;
   phase: Phase;
   nightActions: Record<string, NightAction>;
@@ -104,6 +111,11 @@ export const ROLE_COMPOSITIONS: Record<number, Role[]> = {
 
 export const PHASE_DURATIONS_MS: Partial<Record<Phase, number>> = {
   night: 2 * 60 * 1000,
+  // 원래 결과 공개는 타이머 없이 진행자가 "토론 시작하기"를 눌러야만 넘어갔다
+  // (다같이 TV를 보고 있다가 진행자가 판단해서 넘기는 오프라인 전제).
+  // 온라인에선 진행자가 없거나 자리를 비울 수 있어 여기서 게임이 영구 정지하므로
+  // 타이머를 준다. 진행자가 있으면 여전히 버튼으로 먼저 넘길 수 있다.
+  day_reveal: 30 * 1000,
   day_discussion: 5 * 60 * 1000,
   day_vote: 2 * 60 * 1000,
 };
