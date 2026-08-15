@@ -14,6 +14,7 @@ import {
   isRoomExpired,
   remapPlayerId,
 } from "./rooms.js";
+import { addPlayer } from "./socketHandlers.js";
 
 beforeEach(() => {
   __resetStoreForTest();
@@ -81,6 +82,30 @@ test("방이 사라진 뒤 남은 고아 세션도 정리된다", () => {
 test("방 코드는 대소문자 구분 없이 조회된다", () => {
   const room = createRoom("host1");
   assert.equal(getRoom(room.code.toLowerCase())?.code, room.code);
+});
+
+// 같은 소켓이 다른 닉네임으로 두 번 입장하면 id가 같은 Player가 둘 생겨서,
+// 한 명을 지목해도 두 카드가 선택되고 투표 현황이 두 명에게 찍혔다(실제 플레이에서 확인).
+test("같은 소켓은 한 방에서 한 자리만 차지한다", () => {
+  const room = createRoom("host1");
+
+  assert.equal(addPlayer(room, "sock1", "봇1", null), true);
+  assert.equal(addPlayer(room, "sock1", "봇8", null), false, "닉네임이 달라도 같은 소켓이면 거부한다");
+
+  assert.equal(room.players.length, 1);
+  assert.equal(room.players[0].nickname, "봇1", "첫 입장이 그대로 유지된다");
+});
+
+test("서로 다른 소켓은 정상적으로 각자 입장한다", () => {
+  const room = createRoom("host1");
+
+  assert.equal(addPlayer(room, "sock1", "봇1", null), true);
+  assert.equal(addPlayer(room, "sock2", "봇2", null), true);
+
+  assert.deepEqual(
+    room.players.map((p) => p.id),
+    ["sock1", "sock2"],
+  );
 });
 
 test("재접속으로 id가 바뀌어도 이미 제출한 밤 행동이 유지된다", () => {

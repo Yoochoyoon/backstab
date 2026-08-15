@@ -425,7 +425,19 @@ function nicknameError(room: Room, nickname: string): string | null {
   return null;
 }
 
-function addPlayer(room: Room, id: string, nickname: string, avatar: string | null) {
+/**
+ * 소켓 하나는 한 방에서 딱 한 자리만 차지한다.
+ *
+ * 이걸 안 막으면 같은 소켓이 다른 닉네임으로 두 번 입장했을 때(입장 버튼 연타,
+ * 클라이언트가 join을 다시 쏘는 경우 등) Player가 두 개 생기는데, 둘 다 id가 같은
+ * socket.id다. id는 이 게임 전체의 플레이어 식별자라서 중복되는 순간 전부 어긋난다:
+ * 한 명을 지목해도 두 카드가 선택된 것처럼 보이고, 투표 현황이 두 명에게 찍히고,
+ * 집계도 같은 표를 두 번 센다. 닉네임 중복 검사는 이걸 못 막는다(닉네임이 다르므로).
+ *
+ * 이미 자리를 잡고 있으면 false를 돌려주고, 호출한 쪽이 안내 메시지를 띄운다.
+ */
+export function addPlayer(room: Room, id: string, nickname: string, avatar: string | null): boolean {
+  if (room.players.some((p) => p.id === id)) return false;
   room.players.push({
     id,
     nickname,
@@ -435,6 +447,7 @@ function addPlayer(room: Room, id: string, nickname: string, avatar: string | nu
     alive: true,
     abilities: defaultAbilityState(),
   });
+  return true;
 }
 
 /**
@@ -575,7 +588,9 @@ export function registerSocketHandlers(io: Server) {
         const invalid = nicknameError(room, nickname);
         if (invalid) return callback({ ok: false, error: invalid });
 
-        addPlayer(room, socket.id, nickname, sanitizeAvatar(payload.avatar));
+        if (!addPlayer(room, socket.id, nickname, sanitizeAvatar(payload.avatar))) {
+          return callback({ ok: false, error: "이미 이 방에 입장해 있습니다." });
+        }
         data.roomCode = room.code;
         socket.join(room.code);
         const sessionId = createSession(socket.id, room.code);
