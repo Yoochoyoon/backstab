@@ -145,6 +145,29 @@ function emitNightOptions(io: Server, room: Room) {
   }
 }
 
+/**
+ * 한 명에게만 보내는 비공개 정보(밤 스킬 목록, 스파이 동료 명단)를 다시 보낸다.
+ * 이 둘은 원래 페이즈가 시작될 때 딱 한 번만 나가기 때문에, 재접속한 사람은
+ * state:full_sync를 받아도 이 정보만 빈 채로 남는다.
+ */
+function emitPrivateStateTo(io: Server, room: Room, player: Player) {
+  if (!player.alive) return;
+
+  // 스파이 동료 명단은 1라운드에 공개된 뒤 게임 내내 화면에 남아있어야 한다.
+  if (player.role === "spy") {
+    io.to(player.id).emit("player:spy_reveal", {
+      teammates: room.players
+        .filter((p) => p.role === "spy" && p.id !== player.id)
+        .map((p) => p.nickname),
+    });
+  }
+
+  // 밤 스킬 목록. 1라운드는 정찰 라운드라 행동 자체가 없다.
+  if (room.phase === "night" && room.round > 1) {
+    io.to(player.id).emit("player:night_options", nightOptionsFor(player, room.round));
+  }
+}
+
 function emitSpyReveal(io: Server, room: Room) {
   const spies = room.players.filter((p) => p.role === "spy");
   for (const spy of spies) {
@@ -554,6 +577,12 @@ export function registerSocketHandlers(io: Server) {
           judgementTargetNickname:
             room.players.find((p) => p.id === room.judgementTargetId)?.nickname ?? null,
         });
+
+        // full_sync만으로는 복원되지 않는 "이 사람에게만 한 번 보낸" 정보를 다시 보낸다.
+        // 이걸 빼먹으면 재접속한 사람은 화면은 멀쩡한데 스킬 목록과 동료 스파이 명단이
+        // 영영 빈 채로 남는다 — 폰은 화면 잠금·앱 전환만으로도 소켓이 끊겼다 붙으므로
+        // 실제 플레이에서 아주 흔하게 걸린다.
+        emitPrivateStateTo(io, room, player);
       },
     );
 
