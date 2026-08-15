@@ -29,6 +29,55 @@ function avatarInnerHtml(player) {
   return escapeHtml((player.nickname || "?").charAt(0).toUpperCase());
 }
 
+// 특정 대상에게 표를 던진 사람들을 카드 사진 위에 작은 동그란 프로필로 얹는다.
+// 낮 투표는 실시간 공개라, 누가 누구를 몰아가는지 판 전체가 눈으로 보인다.
+function voterChipsHtml(players, voteProgress, targetId) {
+  if (!voteProgress || voteProgress.kind !== "vote") return "";
+  const voters = voteProgress.votes
+    .filter((v) => v.targetId === targetId)
+    .map((v) => players.find((p) => p.id === v.voterId))
+    .filter(Boolean);
+  if (voters.length === 0) return "";
+  return `<div class="voter-chips">${voters
+    .map(
+      (v) =>
+        `<span class="voter-chip" title="${escapeHtml(v.nickname)}">${
+          v.avatar
+            ? `<img src="${v.avatar}" alt="" />`
+            : escapeHtml((v.nickname || "?").charAt(0).toUpperCase())
+        }</span>`,
+    )
+    .join("")}</div>`;
+}
+
+// 찬반 심판도 실시간 공개다. 누가 찬성/반대 쪽에 서 있는지를 두 줄로 갈라 보여준다.
+function judgementTallyHtml(players, voteProgress) {
+  if (!voteProgress || voteProgress.kind !== "judgement") return "";
+  const side = (want) =>
+    voteProgress.votes
+      .filter((v) => v.approve === want)
+      .map((v) => players.find((p) => p.id === v.voterId))
+      .filter(Boolean);
+  const row = (label, cls, voters) =>
+    `<div class="judgement-tally__row">
+      <span class="judgement-tally__label ${cls}">${label} ${voters.length}</span>
+      <div class="judgement-tally__chips">${voters
+        .map(
+          (v) =>
+            `<span class="voter-chip" title="${escapeHtml(v.nickname)}">${
+              v.avatar
+                ? `<img src="${v.avatar}" alt="" />`
+                : escapeHtml((v.nickname || "?").charAt(0).toUpperCase())
+            }</span>`,
+        )
+        .join("")}</div>
+    </div>`;
+  return `<div class="judgement-tally">
+    ${row("찬성", "is-approve", side(true))}
+    ${row("반대", "is-oppose", side(false))}
+  </div>`;
+}
+
 // 닉네임은 사용자 입력이라 HTML에 넣기 전에 반드시 이스케이프한다.
 function escapeHtml(text) {
   return String(text).replace(/[&<>"']/g, (ch) => ({

@@ -3,6 +3,9 @@ const socket = io();
 // 등록한 프로필 사진(작은 정사각형 data URL). 없으면 null.
 let myAvatar = null;
 
+// 실시간 투표 현황. kind는 "vote"(지목) | "judgement"(찬반) | null.
+let voteProgress = { kind: null, votes: [] };
+
 // 사진은 방 상태(메모리)에 담겨 전원에게 브로드캐스트되므로, 보내기 전에 여기서 확실히 줄인다.
 // 원본을 그대로 올리면 수 MB짜리가 8명분 오가면서 폰에서 게임이 버벅인다.
 const AVATAR_SIZE = 128;
@@ -304,6 +307,13 @@ socket.on("state:players", (payload) => {
   renderChatPanel();
 });
 
+// 낮 투표 실시간 공개 — 누가 누구를 찍었는지 카드 위 작은 프로필로 보여준다.
+socket.on("state:vote_progress", (payload) => {
+  voteProgress = payload || { kind: null, votes: [] };
+  if (currentPhase !== "lobby") renderTargetList();
+  renderJudgementPanel();
+});
+
 // 밤 행동/투표 제출 현황 — 참여자 화면만으로도 누가 이미 제출했고 누가 안 했는지 알 수 있게 한다.
 socket.on("state:submission_progress", ({ submittedIds: ids }) => {
   submittedIds = ids;
@@ -342,8 +352,8 @@ socket.on("player:spy_reveal", ({ teammates }) => {
 
 // 2라운드부터 밤 행동 중, 같은 팀 스파이가 지금 고르고 있는 대상을 실시간으로 보여준다
 // (제출 전이라도 서버가 팀원에게만 귓속말로 알려줌 — 말 없이도 몰빵/분산 공격을 조율할 수 있게).
-socket.on("spy:teammate_preview", ({ fromNickname, targetNickname }) => {
-  spyTeammatePreview[fromNickname] = targetNickname;
+socket.on("spy:teammate_preview", ({ fromNickname, targetNickname, confirmed }) => {
+  spyTeammatePreview[fromNickname] = { target: targetNickname, confirmed: !!confirmed };
   renderSpyCoordPanel();
 });
 
@@ -357,8 +367,15 @@ function renderSpyCoordPanel() {
   const list = document.getElementById("spyCoordList");
   list.innerHTML = spyTeammates
     .map((name) => {
-      const target = spyTeammatePreview[name];
-      return `<li>${name}: ${target ? `<strong>${target}</strong>` : "선택 중..."}</li>`;
+      const state = spyTeammatePreview[name];
+      if (!state || !state.target) {
+        return `<li>${escapeHtml(name)}: <span class="spy-coord__pending">선택 중...</span></li>`;
+      }
+      // 아직 고르는 중인지, 제출까지 마쳤는지를 구분해줘야 "확정된 합공"을 믿고 맞출 수 있다.
+      const mark = state.confirmed
+        ? '<span class="spy-coord__confirmed">(확정)</span>'
+        : '<span class="spy-coord__pending">(고르는 중)</span>';
+      return `<li>${escapeHtml(name)}: <strong>${escapeHtml(state.target)}</strong> ${mark}</li>`;
     })
     .join("");
 }
@@ -721,6 +738,8 @@ function renderJudgementPanel() {
     ? `HP ${target.hp}/${getMaxHpForRole(target.role)}`
     : "";
 
+  document.getElementById("judgementTally").innerHTML = judgementTallyHtml(players, voteProgress);
+
   const me = players.find((p) => p.id === myId);
   const canVote = me ? me.alive : false;
   const approveBtn = document.getElementById("judgeApproveBtn");
@@ -894,7 +913,7 @@ function renderTargetList() {
         : "";
 
     li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}
-      <div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}</div>
+      <div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}${voterChipsHtml(players, voteProgress, p.id)}</div>
       <div class="hp-monitor-card__body">
         <div class="hp-monitor-card__name">${escapeHtml(p.nickname)}${p.id === myId ? " (나)" : ""}${suffix}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>

@@ -669,6 +669,17 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-weight: 700;
 }
 
+/* 동료 스파이 현황 — 아직 고르는 중인지, 제출까지 마쳤는지를 색으로 구분한다.
+   확정 표시를 믿고 같은 대상에 몰아쳐야 합공이 성립하기 때문이다. */
+.spy-coord__confirmed {
+  color: #2ECC71;
+  font-weight: 800;
+}
+
+.spy-coord__pending {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* gameSection의 자식들(안내문/스킬/대상/요약/버튼) 사이 세로 간격. */
 .na-game {
   display: flex;
@@ -899,6 +910,84 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .judgement__btn--oppose.is-chosen {
   background: #2ECC71;
   color: #000;
+}
+
+/* 찬반 심판 실시간 집계 — 포스터 아래에 찬성/반대 진영을 프로필로 갈라 보여준다. */
+.judgement-tally {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6vh;
+  width: 100%;
+  margin-top: 1vh;
+}
+
+.judgement-tally__row {
+  display: flex;
+  align-items: center;
+  gap: 0.8vh;
+}
+
+.judgement-tally__label {
+  flex: none;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(1.6vh, 3cqw);
+  padding: 0.2vh 0.8vh;
+  border: 0.15vh solid #000;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.judgement-tally__label.is-approve {
+  background: #C0392B;
+  color: #fff;
+}
+
+.judgement-tally__label.is-oppose {
+  background: #2ECC71;
+  color: #000;
+}
+
+/* 이 안의 칩은 카드 위에 겹치는 게 아니라 한 줄로 늘어놓는다. */
+.judgement-tally__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4vh;
+  min-height: 2.4vh;
+}
+
+.judgement-tally__chips .voter-chip {
+  width: 2.4vh;
+  max-width: none;
+}
+
+/* TV 포스터 위에서는 멀리서도 보여야 하니 훨씬 크게, 가운데 정렬로 띄운다. */
+.judgement-poster .judgement-tally {
+  margin-top: 2vh;
+  gap: 1.2vh;
+  align-items: center;
+}
+
+.judgement-poster .judgement-tally__row {
+  justify-content: center;
+  gap: 1.4vh;
+}
+
+.judgement-poster .judgement-tally__label {
+  font-size: 3vh;
+  padding: 0.4vh 1.6vh;
+  border-width: 0.3vh;
+}
+
+.judgement-poster .judgement-tally__chips {
+  gap: 0.8vh;
+  min-height: 5vh;
+}
+
+.judgement-poster .judgement-tally__chips .voter-chip {
+  width: 5vh;
+  font-size: 2.2vh;
+  border-width: 0.3vh;
 }
 
 .judgement__note {
@@ -1855,6 +1944,45 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 /* 정사각형 자리를 꽉 채우되 비율은 유지한다(잘라서 채움). */
 .avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 투표 실시간 공개 — 그 대상을 찍은 사람들의 프로필을 사진 위에 작고 동그랗게 겹쳐 얹는다.
+   누가 누구를 몰아가는지가 카드만 봐도 보이게 하는 게 목적이다. */
+.voter-chips {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 2%;
+  padding: 0 4%;
+  pointer-events: none;
+}
+
+.voter-chip {
+  width: 26%;
+  max-width: 4.2vh;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  border: 0.2vh solid #FFF;
+  background: #C0392B;
+  color: #fff;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: min(2cqw, 1.4vh);
+  box-shadow: 0 0 0 0.1vh #000;
+}
+
+.voter-chip img {
   width: 100%;
   height: 100%;
   object-fit: cover;

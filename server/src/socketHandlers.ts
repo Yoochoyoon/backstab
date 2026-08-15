@@ -106,6 +106,31 @@ function currentSubmittedIds(room: Room): string[] {
 // 초기화하지 않아도 새 페이즈 시작 시 자동으로 빈 배열이 나간다.
 function emitSubmissionProgress(io: Server, room: Room) {
   io.to(room.code).emit("state:submission_progress", { submittedIds: currentSubmittedIds(room) });
+  emitVoteProgress(io, room);
+}
+
+/**
+ * 낮 투표는 누가 누구를 찍었는지 실시간으로 공개한다(밤 행동은 절대 공개하지 않는다 —
+ * 밤의 정보 비대칭이 이 게임의 핵심이다).
+ * - day_vote: { voterId, targetId }
+ * - day_judgement: { voterId, approve }
+ */
+function emitVoteProgress(io: Server, room: Room) {
+  if (room.phase === "day_vote") {
+    io.to(room.code).emit("state:vote_progress", {
+      kind: "vote",
+      votes: Object.entries(room.dayVotes).map(([voterId, targetId]) => ({ voterId, targetId })),
+    });
+    return;
+  }
+  if (room.phase === "day_judgement") {
+    io.to(room.code).emit("state:vote_progress", {
+      kind: "judgement",
+      votes: Object.entries(room.judgementVotes).map(([voterId, approve]) => ({ voterId, approve })),
+    });
+    return;
+  }
+  io.to(room.code).emit("state:vote_progress", { kind: null, votes: [] });
 }
 
 /**
@@ -164,6 +189,31 @@ function emitPrivateStateTo(io: Server, room: Room, player: Player) {
   // 밤 스킬 목록. 1라운드는 정찰 라운드라 행동 자체가 없다.
   if (room.phase === "night" && room.round > 1) {
     io.to(player.id).emit("player:night_options", nightOptionsFor(player, room.round));
+  }
+}
+
+/**
+ * 스파이 동료에게 "지금 누구를 보고 있는지"를 흘려준다(02역할.md의 "암둠의 공모").
+ * confirmed=true면 제출까지 마친 것이라, 동료 화면에 (확정)으로 표시된다.
+ * 방 전체가 아니라 살아있는 동료 스파이에게만 개별 전송한다.
+ */
+function emitSpyPreview(
+  io: Server,
+  room: Room,
+  sender: Player,
+  targetId: string | undefined,
+  confirmed: boolean,
+) {
+  const targetPlayer = targetId ? room.players.find((p) => p.id === targetId) : undefined;
+  const teammates = room.players.filter(
+    (p) => p.role === "spy" && p.id !== sender.id && p.alive,
+  );
+  for (const teammate of teammates) {
+    io.to(teammate.id).emit("spy:teammate_preview", {
+      fromNickname: sender.nickname,
+      targetNickname: targetPlayer?.nickname ?? null,
+      confirmed,
+    });
   }
 }
 
@@ -643,6 +693,10 @@ export function registerSocketHandlers(io: Server) {
         if (payload.shieldMode) action.shieldMode = payload.shieldMode;
         room.nightActions[socket.id] = action;
         emitSubmissionProgress(io, room);
+        // 스파이가 제출을 마치면 동료 화면의 현황을 (확정)으로 바꿔준다.
+        if (player.role === "spy") {
+          emitSpyPreview(io, room, player, action.targetId, true);
+        }
       },
     );
 
@@ -653,16 +707,8 @@ export function registerSocketHandlers(io: Server) {
       if (!room || room.phase !== "night" || room.round === 1) return;
       const sender = room.players.find((p) => p.id === socket.id);
       if (!sender || !sender.alive || sender.role !== "spy") return;
-      const targetPlayer = payload.targetId
-        ? room.players.find((p) => p.id === payload.targetId)
-        : undefined;
-      const teammates = room.players.filter((p) => p.role === "spy" && p.id !== sender.id);
-      for (const teammate of teammates) {
-        io.to(teammate.id).emit("spy:teammate_preview", {
-          fromNickname: sender.nickname,
-          targetNickname: targetPlayer?.nickname ?? null,
-        });
-      }
+      // 아직 고르는 중 — 확정이 아니다.
+      emitSpyPreview(io, room, sender, payload.targetId, false);
     });
 
     socket.on("player:submit_vote", (payload: { targetId: string }) => {

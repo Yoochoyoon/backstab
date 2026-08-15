@@ -2,6 +2,8 @@ const socket = io();
 let players = [];
 let currentRoomCode = "";
 let submittedIds = [];
+// 실시간 투표 현황. kind는 "vote"(지목) | "judgement"(찬반) | null.
+let voteProgress = { kind: null, votes: [] };
 
 const PHASE_ICON_MAP = {
   night: "night",
@@ -159,7 +161,7 @@ function renderGrid() {
     const submitted = p.alive && submittedIds.includes(p.id);
     // 역할은 서버가 흘려보낼 때만 표시된다: 사망자는 남은 사람들의 토론에 도움이 되도록
     // 게임 도중에도 공개되고, 게임이 끝나면 살아남은 사람 역할까지 전부 공개된다.
-    div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}</div>
+    div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}${voterChipsHtml(players, voteProgress, p.id)}</div>
       <div class="hp-monitor-card__body">
         <div class="hp-monitor-card__name">${escapeHtml(p.nickname)}${statusLabel(p)}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
@@ -208,6 +210,13 @@ socket.on("state:players", ({ players: ps }) => {
   document.getElementById("startBtn").textContent = validCount
     ? "시작"
     : `시작 (${players.length}/${MIN_PLAYERS}~${MAX_PLAYERS}명)`;
+});
+
+// 낮 투표 실시간 공개 — 누가 누구를 찍었는지 TV 화면 카드 위에도 그대로 보여준다.
+socket.on("state:vote_progress", (payload) => {
+  voteProgress = payload || { kind: null, votes: [] };
+  renderGrid();
+  renderJudgementTally();
 });
 
 // 밤 행동/투표 제출 현황 — 누가 제출했고 누가 안 했는지 참가자 카드/보스 카드에 배지로 표시한다.
@@ -329,6 +338,12 @@ socket.on("state:vote_result", ({ tie, finalTie, topTargetId, topTargetNickname 
   }
   showSlide("🗳️", "투표 결과", sub);
 });
+
+// 지명수배 포스터 아래에 찬성/반대 진영을 실시간으로 그린다.
+function renderJudgementTally() {
+  const el = document.getElementById("judgementPosterTally");
+  if (el) el.innerHTML = judgementTallyHtml(players, voteProgress);
+}
 
 socket.on("state:judgement_started", ({ nickname }) => {
   const poster = document.getElementById("judgementPoster");
