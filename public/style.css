@@ -1215,8 +1215,18 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   content: none;
 }
 
-/* 목록에서 내 카드를 바로 찾을 수 있게 테두리를 강조한다. */
+/* 목록에서 내 카드를 바로 찾을 수 있게 강조하되, 선택(.selected)과는 확실히 다르게 그린다.
+   예전엔 둘 다 노란 실선 테두리라 "내 카드"와 "내가 지목한 카드"가 똑같이 보였고,
+   그래서 한 명만 골랐는데 두 명이 선택된 것처럼 보이는 혼동이 있었다.
+   내 카드는 흰색 점선 — 선택은 노란 실선 + 노란 링으로 역할을 갈라둔다. */
 .na-target-grid .hp-monitor-card.is-me {
+  border-style: dashed;
+  border-color: #fff;
+}
+
+/* 선택이 겹쳐 있으면 선택 쪽이 항상 이기게 한다(내 카드가 읽기 전용 목록에 같이 뜰 때). */
+.na-target-grid .hp-monitor-card.is-me.selected {
+  border-style: solid;
   border-color: #FFE500;
 }
 
