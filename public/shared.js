@@ -8,6 +8,13 @@ const MAX_HP_BY_ROLE = {
   traitor: 4,
 };
 
+const ROLE_NAMES = {
+  boss: "보스",
+  bodyguard: "경호원",
+  spy: "스파이",
+  traitor: "배신자",
+};
+
 function getMaxHpForRole(role) {
   return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
 }

@@ -82,6 +82,9 @@ let currentPhase = "lobby";
 let currentRound = 0;
 let voteAllowedTargetIds = null;
 let selectedTargetId = null;
+let submittedIds = [];
+let spyTeammates = [];
+let spyTeammatePreview = {};
 let myNightOptions = { canAttack: true, specialActions: [] };
 let selectedAction = "attack";
 let selectedShieldMode = "absorb";
@@ -141,6 +144,12 @@ socket.on("state:players", (payload) => {
   if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
 });
 
+// 밤 행동/투표 제출 현황 — 참여자 화면만으로도 누가 이미 제출했고 누가 안 했는지 알 수 있게 한다.
+socket.on("state:submission_progress", ({ submittedIds: ids }) => {
+  submittedIds = ids;
+  if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
+});
+
 socket.on("public:boss_revealed", ({ nickname }) => {
   bossBanner.style.display = "block";
   document.getElementById("bossName").textContent = nickname;
@@ -159,9 +168,33 @@ socket.on("player:role_assigned", ({ role, hp }) => {
 
 socket.on("player:spy_reveal", ({ teammates }) => {
   spyRevealSection.style.display = "block";
+  spyTeammates = teammates;
   const el = document.getElementById("spyTeammateList");
   el.innerHTML = teammates.map((name) => `<li>${name}</li>`).join("");
 });
+
+// 2라운드부터 밤 행동 중, 같은 팀 스파이가 지금 고르고 있는 대상을 실시간으로 보여준다
+// (제출 전이라도 서버가 팀원에게만 귓속말로 알려줌 — 말 없이도 몰빵/분산 공격을 조율할 수 있게).
+socket.on("spy:teammate_preview", ({ fromNickname, targetNickname }) => {
+  spyTeammatePreview[fromNickname] = targetNickname;
+  renderSpyCoordPanel();
+});
+
+function renderSpyCoordPanel() {
+  const panel = document.getElementById("spyCoordPanel");
+  if (myRole !== "spy" || currentPhase !== "night" || currentRound <= 1) {
+    panel.style.display = "none";
+    return;
+  }
+  panel.style.display = "block";
+  const list = document.getElementById("spyCoordList");
+  list.innerHTML = spyTeammates
+    .map((name) => {
+      const target = spyTeammatePreview[name];
+      return `<li>${name}: ${target ? `<strong>${target}</strong>` : "선택 중..."}</li>`;
+    })
+    .join("");
+}
 
 socket.on("player:night_options", (options) => {
   myNightOptions = options;
@@ -239,6 +272,7 @@ function applyPhase(phase, round, phaseEndsAt) {
     submitBtn.style.display = "block";
     summaryPanel.style.display = "block";
     document.getElementById("targetSection").style.display = "flex";
+    spyTeammatePreview = {}; // 새 밤 라운드마다 지난 라운드의 동료 선택 현황을 지운다.
     renderActionChoices();
   } else if (phase === "day_vote") {
     voteAllowedTargetIds = null; // 서버가 별도로 알려주지 않는 한 전원 대상
@@ -271,6 +305,7 @@ function applyPhase(phase, round, phaseEndsAt) {
   }
 
   updateBeginnerHint(phase, round);
+  renderSpyCoordPanel();
 }
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
@@ -300,7 +335,7 @@ socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
     const deaths = (updatedPlayers || []).filter(
       (p) => !p.alive && damageLog.some((d) => d.targetId === p.id),
     );
-    const lines = deaths.map((p) => `${p.nickname} 사망`);
+    const lines = deaths.map((p) => `${p.nickname} 사망 (${ROLE_NAMES[p.role] ?? p.role})`);
     const survivedHits = damageLog.length - deaths.length;
     if (survivedHits > 0) lines.push(`그 외 ${survivedHits}명 피해`);
     sub = lines.join("\n") || damageLog.map((d) => `${nameOfFresh(d.targetId)} -${d.damage}`).join("\n");
@@ -321,8 +356,10 @@ socket.on("state:vote_result", ({ damageLog, tie, tiedTargetIds, finalTie, topTa
     sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
   } else if (topTargetId) {
     const nameOfFresh = (id) => (updatedPlayers || players).find((p) => p.id === id)?.nickname ?? "???";
-    const died = (updatedPlayers || []).some((p) => p.id === topTargetId && !p.alive);
-    sub = `${nameOfFresh(topTargetId)}가 최종 지목되었습니다` + (died ? "\n사망" : "");
+    const deadTarget = (updatedPlayers || []).find((p) => p.id === topTargetId && !p.alive);
+    sub =
+      `${nameOfFresh(topTargetId)}가 최종 지목되었습니다` +
+      (deadTarget ? `\n사망 (${ROLE_NAMES[deadTarget.role] ?? deadTarget.role})` : "");
   } else {
     sub = "아무도 지목되지 않았습니다";
   }
@@ -357,6 +394,7 @@ socket.on("state:full_sync", (data) => {
 
   waitingSection.style.display = "none";
 
+  submittedIds = data.submittedIds || [];
   applyPhase(data.phase, data.round, data.phaseEndsAt);
 });
 
@@ -461,7 +499,9 @@ function renderTargetList() {
     if (p.id === selectedTargetId) li.classList.add("selected");
     const maxHp = getMaxHpForRole(p.role);
     const initial = p.nickname.charAt(0).toUpperCase();
-    li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}
+    // 밤 행동/투표 제출 여부 — 나뿐 아니라 다른 사람이 제출했는지도 이 화면만으로 알 수 있게 배지로 표시한다.
+    const submitted = submittedIds.includes(p.id);
+    li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}
       <div class="hp-monitor-card__avatar">${initial}</div>
       <div class="hp-monitor-card__body">
         <div class="hp-monitor-card__name">${p.nickname}</div>
@@ -477,6 +517,10 @@ function renderTargetList() {
     li.addEventListener("click", () => {
       selectedTargetId = p.id;
       renderTargetList();
+      // 스파이는 제출 전에 고르는 순간부터 동료에게 실시간으로 대상을 공유한다.
+      if (myRole === "spy" && currentPhase === "night" && currentRound > 1) {
+        socket.emit("player:preview_night_target", { targetId: p.id });
+      }
     });
     el.appendChild(li);
   }

@@ -26,9 +26,10 @@ function publicPlayers(room: Room) {
     nickname: p.nickname,
     hp: p.hp,
     alive: p.alive,
-    // 보스는 02역할.md 기준으로 유일하게 공개된 역할이라 role을 그대로 흘려보낸다.
-    // 다른 역할은 비공개라 undefined로 남긴다.
-    role: p.role === "boss" ? ("boss" as const) : undefined,
+    // 보스는 02역할.md 기준으로 유일하게 공개된 역할이라 항상 role을 흘려보낸다.
+    // 그 외 역할은 살아있는 동안은 비공개지만, 사망하면 다른 마피아류 게임처럼
+    // 역할을 공개해서 남은 사람들이 토론에 활용할 수 있게 한다.
+    role: p.role === "boss" || !p.alive ? p.role : undefined,
   }));
 }
 
@@ -41,6 +42,21 @@ function emitState(io: Server, room: Room) {
     round: room.round,
     phaseEndsAt: room.phaseEndsAt,
   });
+  emitSubmissionProgress(io, room);
+}
+
+// 밤 행동/투표를 누가 이미 제출했는지(무엇을 냈는지는 제외) 계산한다.
+function currentSubmittedIds(room: Room): string[] {
+  if (room.phase === "night") return Object.keys(room.nightActions);
+  if (room.phase === "day_vote") return Object.keys(room.dayVotes);
+  return [];
+}
+
+// 방 전체에 제출 현황을 알려서, 호스트·참여자 화면 어디서든 볼 수 있게 한다.
+// emitState()가 페이즈 시작 시점(액션/투표 초기화 직후)에도 호출되므로, 여기서 별도로
+// 초기화하지 않아도 새 페이즈 시작 시 자동으로 빈 배열이 나간다.
+function emitSubmissionProgress(io: Server, room: Room) {
+  io.to(room.code).emit("state:submission_progress", { submittedIds: currentSubmittedIds(room) });
 }
 
 /**
@@ -324,8 +340,7 @@ export function registerSocketHandlers(io: Server) {
           myHp: player.hp,
           round: room.round,
           phase: room.phase,
-          nightActions: room.nightActions,
-          dayVotes: room.dayVotes,
+          submittedIds: currentSubmittedIds(room),
           voteAllowedTargetIds: room.voteAllowedTargetIds,
           phaseEndsAt: room.phaseEndsAt,
         });
@@ -368,8 +383,28 @@ export function registerSocketHandlers(io: Server) {
         if (payload.targetId) action.targetId = payload.targetId;
         if (payload.shieldMode) action.shieldMode = payload.shieldMode;
         room.nightActions[socket.id] = action;
+        emitSubmissionProgress(io, room);
       },
     );
+
+    // 스파이끼리 밤 행동 대상을 실시간으로(제출 전이라도) 조율할 수 있게, 지금 고르고 있는
+    // 대상을 같은 팀 스파이에게만 귓속말로 알려준다. 다른 역할에게는 절대 보내지 않는다.
+    socket.on("player:preview_night_target", (payload: { targetId?: string }) => {
+      const room = data.roomCode ? getRoom(data.roomCode) : undefined;
+      if (!room || room.phase !== "night" || room.round === 1) return;
+      const sender = room.players.find((p) => p.id === socket.id);
+      if (!sender || !sender.alive || sender.role !== "spy") return;
+      const targetPlayer = payload.targetId
+        ? room.players.find((p) => p.id === payload.targetId)
+        : undefined;
+      const teammates = room.players.filter((p) => p.role === "spy" && p.id !== sender.id);
+      for (const teammate of teammates) {
+        io.to(teammate.id).emit("spy:teammate_preview", {
+          fromNickname: sender.nickname,
+          targetNickname: targetPlayer?.nickname ?? null,
+        });
+      }
+    });
 
     socket.on("player:submit_vote", (payload: { targetId: string }) => {
       const room = data.roomCode ? getRoom(data.roomCode) : undefined;
@@ -378,6 +413,7 @@ export function registerSocketHandlers(io: Server) {
       if (!player || !player.alive) return;
       if (room.voteAllowedTargetIds && !room.voteAllowedTargetIds.includes(payload.targetId)) return;
       room.dayVotes[socket.id] = payload.targetId;
+      emitSubmissionProgress(io, room);
     });
 
     socket.on("host:advance_phase", () => {

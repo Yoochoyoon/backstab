@@ -1,6 +1,7 @@
 const socket = io();
 let players = [];
 let currentRoomCode = "";
+let submittedIds = [];
 
 const PHASE_ICON_MAP = {
   night: "night",
@@ -87,10 +88,15 @@ function renderGrid() {
     if (!p.alive) div.classList.add("is-dead");
     const maxHp = getMaxHpForRole(p.role);
     const initial = p.nickname.charAt(0).toUpperCase();
+    // 밤 행동/투표 제출 여부 — 누가 이미 제출했고 누가 안 했는지 한눈에 보이게 배지로 표시한다.
+    const submitted = p.alive && submittedIds.includes(p.id);
     // 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정
-    div.innerHTML = `<div class="hp-monitor-card__avatar">${initial}</div>
+    // 사망한 참가자는 남은 사람들의 토론에 도움이 되도록 역할도 함께 공개한다
+    // (publicPlayers()가 사망자에 한해 role을 흘려보낸다).
+    const deadLabel = p.alive ? "" : ` (사망${p.role ? " · " + (ROLE_NAMES[p.role] ?? p.role) : ""})`;
+    div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${initial}</div>
       <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}${p.alive ? "" : " (사망)"}</div>
+        <div class="hp-monitor-card__name">${p.nickname}${deadLabel}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
         <div class="hp-monitor-card__pips"></div>
       </div>`;
@@ -124,6 +130,7 @@ socket.on("state:players", ({ players: ps }) => {
     } else {
       bossBanner.classList.remove("is-critical");
     }
+    bossBanner.classList.toggle("is-submitted", boss.alive && submittedIds.includes(boss.id));
     const bossMaxHp = getMaxHpForRole("boss");
     document.getElementById("bossHpText").textContent = `HP ${boss.hp}/${bossMaxHp}`;
     renderPipBar(document.getElementById("bossHpPips"), boss.hp, bossMaxHp, "hp-pip--yellow");
@@ -134,6 +141,17 @@ socket.on("state:players", ({ players: ps }) => {
   document.getElementById("startBtn").textContent = validCount
     ? "시작"
     : `시작 (${players.length}/${MIN_PLAYERS}~${MAX_PLAYERS}명)`;
+});
+
+// 밤 행동/투표 제출 현황 — 누가 제출했고 누가 안 했는지 참가자 카드/보스 카드에 배지로 표시한다.
+socket.on("state:submission_progress", ({ submittedIds: ids }) => {
+  submittedIds = ids;
+  renderGrid();
+  const boss = players.find((p) => p.role === "boss");
+  const bossBanner = document.getElementById("bossBanner");
+  if (boss && bossBanner) {
+    bossBanner.classList.toggle("is-submitted", boss.alive && submittedIds.includes(boss.id));
+  }
 });
 
 socket.on("public:boss_revealed", ({ nickname }) => {
@@ -199,7 +217,7 @@ socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
     const deaths = (updatedPlayers || []).filter(
       (p) => !p.alive && damageLog.some((d) => d.targetId === p.id),
     );
-    const lines = deaths.map((p) => `${p.nickname} 사망`);
+    const lines = deaths.map((p) => `${p.nickname} 사망 (${ROLE_NAMES[p.role] ?? p.role})`);
     const survivedHits = damageLog.length - deaths.length;
     if (survivedHits > 0) lines.push(`그 외 ${survivedHits}명 피해`);
     sub = lines.join("\n");
@@ -214,8 +232,10 @@ socket.on("state:vote_result", ({ damageLog, tie, finalTie, topTargetId, players
   if (tie) {
     sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
   } else if (topTargetId) {
-    const died = (updatedPlayers || []).some((p) => p.id === topTargetId && !p.alive);
-    sub = `${nameOf(topTargetId)}가 최종 지목되었습니다` + (died ? "\n사망" : "");
+    const deadTarget = (updatedPlayers || []).find((p) => p.id === topTargetId && !p.alive);
+    sub =
+      `${nameOf(topTargetId)}가 최종 지목되었습니다` +
+      (deadTarget ? `\n사망 (${ROLE_NAMES[deadTarget.role] ?? deadTarget.role})` : "");
   } else {
     sub = "아무도 지목되지 않았습니다";
   }

@@ -1128,6 +1128,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .boss-sticker {
+  position: relative;
   grid-area: boss;
   display: flex;
   flex-direction: column;
@@ -1144,6 +1145,27 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .boss-sticker.is-critical {
   border-color: var(--color-danger);
+}
+
+/* 밤 행동/투표 제출 현황 배지 — 참가자 카드와 같은 스타일, 보스 전용으로 한 번 더 정의 */
+.boss-sticker__submit-badge {
+  display: none;
+  position: absolute;
+  z-index: 2;
+  top: 0.6vh;
+  right: 0.6vh;
+  background: #2ECC71;
+  color: #000;
+  font-weight: 800;
+  font-size: min(2cqw, 1.6vh);
+  padding: 0.3vh 1vh;
+  border-radius: 999px;
+  border: 0.15vh solid #000;
+  white-space: nowrap;
+}
+
+.boss-sticker.is-submitted .boss-sticker__submit-badge {
+  display: block;
 }
 
 /* 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정 */
@@ -1380,6 +1402,23 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   text-shadow:
     -0.15vh -0.15vh 0 #000, 0.15vh -0.15vh 0 #000,
     -0.15vh  0.15vh 0 #000, 0.15vh  0.15vh 0 #000;
+}
+
+/* 밤 행동/투표 제출 현황 배지 — 누가 이미 제출했는지 카드 안쪽 모서리에 표시한다.
+   카드 자체가 overflow:hidden(사망 도장용)이라 바깥으로 튀어나오지 않게 안쪽에 배치한다. */
+.hp-monitor-card__submit-badge {
+  position: absolute;
+  z-index: 2;
+  top: 0.5vh;
+  right: 0.5vh;
+  background: #2ECC71;
+  color: #000;
+  font-weight: 800;
+  font-size: min(2.2cqw, 1.5vh);
+  padding: 0.2vh 0.8vh;
+  border-radius: 999px;
+  border: 0.15vh solid #000;
+  white-space: nowrap;
 }
 
 /* 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정 */
