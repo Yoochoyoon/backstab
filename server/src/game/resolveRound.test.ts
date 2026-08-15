@@ -306,12 +306,53 @@ test("checkWinner: boss side wins once all spies and the traitor are eliminated"
   assert.equal(checkWinner(players), "boss");
 });
 
-test("checkWinner: lone surviving traitor wins", () => {
+test("checkWinner: 보스와 배신자 단 둘만 남으면 배신자 승리", () => {
   const players = [
-    makePlayer({ id: "boss", role: "boss", alive: false, hp: 0 }),
+    makePlayer({ id: "boss", role: "boss", hp: 3 }),
+    makePlayer({ id: "bg1", role: "bodyguard", alive: false, hp: 0 }),
+    makePlayer({ id: "spy1", role: "spy", alive: false, hp: 0 }),
     makePlayer({ id: "traitor1", role: "traitor", hp: 4 }),
   ];
-  // 보스가 죽었으므로 실제로는 스파이 승리 규칙이 먼저 적용됨을 함께 확인
+  assert.equal(checkWinner(players), "traitor");
+});
+
+// 경호원이 한 명이라도 남아 있으면 아직 "단 둘"이 아니다.
+test("checkWinner: 보스·배신자 외에 생존자가 더 있으면 아직 미결", () => {
+  const players = [
+    makePlayer({ id: "boss", role: "boss", hp: 3 }),
+    makePlayer({ id: "bg1", role: "bodyguard", hp: 4 }),
+    makePlayer({ id: "spy1", role: "spy", alive: false, hp: 0 }),
+    makePlayer({ id: "traitor1", role: "traitor", hp: 4 }),
+  ];
+  assert.equal(checkWinner(players), null);
+});
+
+test("checkWinner: 배신자가 살아있어도 보스가 죽으면 스파이 승리", () => {
+  const players = [
+    makePlayer({ id: "boss", role: "boss", alive: false, hp: 0 }),
+    makePlayer({ id: "spy1", role: "spy", hp: 4 }),
+    makePlayer({ id: "traitor1", role: "traitor", hp: 4 }),
+  ];
+  assert.equal(checkWinner(players), "spy");
+});
+
+// 배신자 승리는 보스 생존이 전제라, 보스가 죽으면 배신자는 이길 수 없다.
+// 덕분에 승자가 안 나오는 교착 상태 자체가 생기지 않는다.
+test("checkWinner: 보스가 죽으면 배신자만 남아도 스파이 승리", () => {
+  const players = [
+    makePlayer({ id: "boss", role: "boss", alive: false, hp: 0 }),
+    makePlayer({ id: "spy1", role: "spy", alive: false, hp: 0 }),
+    makePlayer({ id: "traitor1", role: "traitor", hp: 4 }),
+  ];
+  assert.equal(checkWinner(players), "spy");
+});
+
+test("checkWinner: 전원 사망해도 승자를 내고 끝난다 (무한 루프 방지)", () => {
+  const players = [
+    makePlayer({ id: "boss", role: "boss", alive: false, hp: 0 }),
+    makePlayer({ id: "spy1", role: "spy", alive: false, hp: 0 }),
+    makePlayer({ id: "traitor1", role: "traitor", alive: false, hp: 0 }),
+  ];
   assert.equal(checkWinner(players), "spy");
 });
 

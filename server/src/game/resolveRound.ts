@@ -199,21 +199,32 @@ export function resolveJudgement(
 
 /**
  * 승리조건 판정 (02역할.md 기준).
- * - 보스 사망 -> 스파이 즉시 승리
+ * - 보스와 배신자 단 둘만 생존 -> 배신자 승리
+ * - 보스 사망 -> 스파이 승리
  * - 보스 생존 + 스파이/배신자 전멸 -> 보스(경호원 포함) 승리
- * - 생존자가 배신자 1명만 남음 -> 배신자 승리
+ *
+ * 배신자 판정을 맨 앞에 두는 게 핵심이다. 예전엔 보스 사망 판정이 먼저라
+ * 배신자 승리 분기가 어떤 입력으로도 실행되지 않는 죽은 코드였다.
+ *
+ * 배신자 조건이 "보스 생존"을 전제하므로, 보스가 죽는 순간 배신자는 이길 수
+ * 없게 되고 판정이 스파이 승리로 딱 떨어진다 — 무승부나 교착 상태가 생기지 않는다.
  */
 export function checkWinner(players: Player[]): Role | null {
-  const boss = players.find((p) => p.role === "boss");
-  if (!boss || !boss.alive) return "spy";
-
   const alive = players.filter((p) => p.alive);
-  const spiesOrTraitorAlive = alive.some(
-    (p) => p.role === "spy" || p.role === "traitor",
-  );
-  if (!spiesOrTraitorAlive) return "boss";
+  const bossAlive = players.some((p) => p.role === "boss" && p.alive);
+  const spyAlive = alive.some((p) => p.role === "spy");
+  const traitorAlive = alive.some((p) => p.role === "traitor");
 
-  if (alive.length === 1 && alive[0].role === "traitor") return "traitor";
+  // 1. 배신자 승리: 보스와 단 둘이 남으면 그 시점에 이긴다.
+  //    경호원·스파이를 전부 걷어내는 게 목표라, 배신자는 스파이로부터 보스를
+  //    지키면서 나머지를 정리해야 하는 줄타기를 하게 된다.
+  if (alive.length === 2 && bossAlive && traitorAlive) return "traitor";
+
+  // 2. 보스가 죽으면 보스·경호원은 패배하고, 배신자도 위 조건을 영영 만족할 수 없다.
+  if (!bossAlive) return "spy";
+
+  // 3. 보스 생존 + 위협 전멸 -> 보스·경호원 승리.
+  if (!spyAlive && !traitorAlive) return "boss";
 
   return null;
 }
