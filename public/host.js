@@ -276,7 +276,7 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   }
   lobbySection.style.display = "none";
   gameControlSection.style.display = "flex";
-  document.getElementById("caseNumber").textContent = `#${currentRoomCode}`;
+  document.getElementById("caseNumber").textContent = currentRoomCode;
   if (phase === "game_over") {
     document.getElementById("phaseLabel").textContent = "게임 종료";
     // textContent만 비우면 직전 페이즈의 카운트다운 인터벌이 계속 살아서 타이머를
