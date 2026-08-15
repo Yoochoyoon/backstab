@@ -1528,7 +1528,6 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .host-layout[data-phase="night"] .case-badge__label,
-.host-layout[data-phase="night"] .case-badge__case-word,
 .host-layout[data-phase="night"] .phase-bar__label,
 .host-layout[data-phase="night"] .hp-monitor-card__name,
 .host-layout[data-phase="night"] .hp-monitor-card__hp-text,
@@ -1903,16 +1902,6 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-size: min(1.6cqw, 1.8vh);
   letter-spacing: 0.1em;
   margin-bottom: 0.4vh;
-}
-
-.case-badge__case-word {
-  display: block;
-  color: #000;
-  font-family: 'Noto Sans KR', sans-serif;
-  font-weight: 900;
-  font-size: min(1.8cqw, 2vh);
-  letter-spacing: 0.1em;
-  opacity: 0.6;
 }
 
 /* 노란 배지 위에 검정 글자 — 흰 배경에서도 대비가 확실하게 남도록. */
