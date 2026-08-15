@@ -520,12 +520,19 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
    게임 진행 중에는 장식보다 정보 전달이 우선이라(design.md 10.5),
    랜딩/대기실의 회전 카드 대신 검정 배경 위에 바로 배치한다.
    ============================================================ */
+/* 폰 세로 화면 기준으로 짠 레이아웃이라, 노트북·아이패드로 열면 가로로 한없이 늘어나
+   카드 한 장이 500px을 넘고 상단 박스는 글자가 잘렸다. 큰 화면에서는 폰 폭만큼의
+   기둥으로 묶어 가운데 정렬한다(폰에서는 100%라 지금과 동일). */
 .na-screen {
   min-height: 100dvh;
+  width: 100%;
+  max-width: 560px;
+  margin: 0 auto;
   background: #300a0d;
   color: #fff;
   line-height: 1.6;
-  padding: 3vh 4vw 5vh;
+  /* 폭이 묶이면 4vw는 큰 화면에서 과한 여백이 되므로 상한을 둔다. */
+  padding: 3vh clamp(14px, 4vw, 24px) 5vh;
   box-sizing: border-box;
   container-type: inline-size;
   display: flex;
@@ -534,12 +541,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 /* 상단 3박스: 보스 공개 / 내 역할 / 타이머 */
-/* 보스가 공개되면 상단이 2칸에서 3칸으로 늘어나는데, 폰 폭에서 3등분하면 한 칸이
-   100px도 안 돼 타이머("01:43")가 칸을 뚫고 나갔다. 칸이 9rem보다 좁아지면 줄을
-   바꿔서, 칸 수가 몇 개든 각 칸이 읽을 수 있는 폭을 유지하게 한다. */
+/* 정보 박스(보스 공개/내 역할)는 2열 고정, 타이머는 그 아래 한 줄 전체를 쓴다.
+   auto-fit + minmax로 두면 폭에 따라 칸 수가 2~3개로 흔들려서, 어떤 폭에서는
+   타이머가 칸을 뚫고 나가고 어떤 폭에서는 이름이 한 글자씩 세로로 쪼개졌다. */
 .na-topline {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: 2vw;
 }
 
@@ -576,12 +583,15 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   letter-spacing: 0.05em;
 }
 
+/* 이름·역할은 잘리면 안 된다("배신자"가 "배..."로 잘리던 문제). 카드 이름과 같은 규칙으로
+   말줄임 대신 줄바꿈을 허용하고, 한글은 어절 단위로 끊는다. */
 .na-box__value {
+  min-width: 0;
   font-weight: 900;
   font-size: min(3.8vw, 2.6vh);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .na-hp-row {
@@ -1959,11 +1969,21 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   justify-self: center;
 }
 
-/* 사진은 5:4(가로가 조금 더 긴 비율)로 고정한다. */
+/* 사진은 5:4(가로가 조금 더 긴 비율)를 기본으로 하되, 공간이 모자라면 사진이 먼저 줄어든다.
+   긴 닉네임이 두 줄로 늘어나면 본문이 더 높아지는데, 사진이 안 줄어들면 아래 HP 조각이
+   카드 밖으로 밀려 잘렸다(아이패드 폭에서 실제로 28px 잘림 확인). 비율이 조금 변하는 게
+   HP 정보가 사라지는 것보다 낫다. */
 .hp-monitor__grid .hp-monitor-card__avatar {
   width: 100%;
   aspect-ratio: 5 / 4;
   max-height: none;
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+/* 본문은 이름이 두 줄이 되더라도 필요한 높이를 그대로 확보한다. */
+.hp-monitor__grid .hp-monitor-card__body {
+  flex: 0 0 auto;
 }
 
 .hp-monitor-card {
