@@ -12,6 +12,7 @@ import {
   getRoom,
   getSession,
   isRoomExpired,
+  remapPlayerId,
 } from "./rooms.js";
 
 beforeEach(() => {
@@ -80,4 +81,67 @@ test("방이 사라진 뒤 남은 고아 세션도 정리된다", () => {
 test("방 코드는 대소문자 구분 없이 조회된다", () => {
   const room = createRoom("host1");
   assert.equal(getRoom(room.code.toLowerCase())?.code, room.code);
+});
+
+test("재접속으로 id가 바뀌어도 이미 제출한 밤 행동이 유지된다", () => {
+  const room = createRoom("h");
+  room.nightActions = { old: { actionType: "attack", targetId: "victim" } };
+
+  remapPlayerId(room, "old", "new");
+
+  assert.equal(room.nightActions.old, undefined);
+  assert.deepEqual(room.nightActions.new, { actionType: "attack", targetId: "victim" });
+});
+
+test("재접속한 사람을 지목하고 있던 밤 행동의 대상 id도 따라 바뀐다", () => {
+  const room = createRoom("h");
+  room.nightActions = { attacker: { actionType: "attack", targetId: "old" } };
+
+  remapPlayerId(room, "old", "new");
+
+  assert.equal(room.nightActions.attacker.targetId, "new");
+});
+
+test("재접속으로 id가 바뀌어도 이미 던진 표가 유지되고, 그 사람에게 간 표도 따라온다", () => {
+  const room = createRoom("h");
+  room.dayVotes = { old: "someone", voterA: "old", voterB: "other" };
+
+  remapPlayerId(room, "old", "new");
+
+  assert.equal(room.dayVotes.old, undefined);
+  assert.equal(room.dayVotes.new, "someone", "본인이 던진 표가 살아있어야 한다");
+  assert.equal(room.dayVotes.voterA, "new", "그 사람에게 간 표도 새 id를 가리켜야 한다");
+  assert.equal(room.dayVotes.voterB, "other");
+});
+
+test("심판 대상이 재접속하면 대상 id가 갱신된다 (가결돼도 데미지가 안 들어가던 버그)", () => {
+  const room = createRoom("h");
+  room.judgementTargetId = "old";
+  room.judgementVotes = { old: false, voter: true };
+
+  remapPlayerId(room, "old", "new");
+
+  assert.equal(room.judgementTargetId, "new");
+  assert.equal(room.judgementVotes.old, undefined);
+  assert.equal(room.judgementVotes.new, false, "대상 본인이 던진 반대표가 살아있어야 한다");
+});
+
+test("재투표 동점자 목록에 있던 id도 갱신된다", () => {
+  const room = createRoom("h");
+  room.voteAllowedTargetIds = ["old", "other"];
+  room.lastVoteResult = { targetId: "old", tie: false };
+
+  remapPlayerId(room, "old", "new");
+
+  assert.deepEqual(room.voteAllowedTargetIds, ["new", "other"]);
+  assert.equal(room.lastVoteResult.targetId, "new");
+});
+
+test("id가 그대로면 아무것도 바꾸지 않는다", () => {
+  const room = createRoom("h");
+  room.nightActions = { same: { actionType: "attack", targetId: "same" } };
+
+  remapPlayerId(room, "same", "same");
+
+  assert.deepEqual(room.nightActions.same, { actionType: "attack", targetId: "same" });
 });

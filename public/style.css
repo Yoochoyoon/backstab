@@ -1785,6 +1785,26 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   text-overflow: ellipsis;
 }
 
+/* 게임이 끝나면 이름 옆 역할 공개가 이 화면의 결론이다. 평소의 한 줄 말줄임을
+   그대로 두면 "봇3 (스파..." 처럼 잘려서 정작 제일 중요한 정보가 안 보인다. */
+.host-layout[data-phase="game_over"] .hp-monitor-card__name {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  line-height: 1.15;
+  font-size: min(2.4cqw, 2.7vh);
+}
+
+/* 같은 이유로 종료 화면에서는 큼직한 "사망" 도장을 뺀다 — 이름 위를 덮어
+   사망자의 역할을 못 읽게 만든다. 카드가 어두워지는 것만으로 충분히 구분된다. */
+.host-layout[data-phase="game_over"] .hp-monitor-card.is-dead::after {
+  content: none;
+}
+
+.host-layout[data-phase="game_over"] .hp-monitor-card.is-dead::before {
+  background: rgba(0, 0, 0, 0.45);
+}
+
 .hp-monitor-card__hp-text {
   font-weight: 800;
   color: #000;

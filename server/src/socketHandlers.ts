@@ -26,6 +26,7 @@ import {
   deleteSessionsByRoom,
   getRoom,
   getSession,
+  remapPlayerId,
   touchRoom,
 } from "./rooms.js";
 
@@ -545,6 +546,10 @@ export function registerSocketHandlers(io: Server) {
         // 새 소켓으로 같이 옮겨야 한다. 안 그러면 폰 화면이 한 번 꺼졌다 돌아온 것만으로
         // 방장이 시작/진행 버튼을 영영 잃는다.
         const wasLeader = room.hostId === session.playerId;
+        // 소켓 id를 식별자로 쓰는 방 상태(제출한 행동/투표, 심판 대상 등)를 먼저 옮긴다.
+        // 이걸 빼먹으면 재접속한 사람의 제출이 통째로 버려지고, 심판 대상이면
+        // 처단이 가결돼도 데미지가 안 들어간다.
+        remapPlayerId(room, session.playerId, socket.id);
         player.id = socket.id;
         session.playerId = socket.id;
         if (wasLeader) {

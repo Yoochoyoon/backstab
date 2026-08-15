@@ -73,6 +73,44 @@ export function touchRoom(room: Room): void {
   room.lastActivityAt = Date.now();
 }
 
+/**
+ * 재접속으로 플레이어의 소켓 id가 바뀔 때, 그 id를 키·값으로 쓰고 있는 방 상태를 전부 옮긴다.
+ *
+ * 방 상태 곳곳이 소켓 id를 그대로 식별자로 쓰고 있어서, player.id만 갈아끼우면
+ * 이미 제출한 밤 행동·투표가 주인 없는 키로 남아 조용히 버려지고, 심판 대상 id가
+ * 어긋나 처단이 가결돼도 아무 데미지가 안 들어간다(실제 플레이에서 둘 다 재현됨).
+ */
+export function remapPlayerId(room: Room, oldId: string, newId: string): void {
+  if (oldId === newId) return;
+
+  // 제출한 사람(키) 기준
+  if (room.nightActions[oldId]) {
+    room.nightActions[newId] = room.nightActions[oldId];
+    delete room.nightActions[oldId];
+  }
+  if (room.dayVotes[oldId]) {
+    room.dayVotes[newId] = room.dayVotes[oldId];
+    delete room.dayVotes[oldId];
+  }
+  if (room.judgementVotes[oldId] !== undefined) {
+    room.judgementVotes[newId] = room.judgementVotes[oldId];
+    delete room.judgementVotes[oldId];
+  }
+
+  // 지목당한 사람(값) 기준
+  for (const action of Object.values(room.nightActions)) {
+    if (action.targetId === oldId) action.targetId = newId;
+  }
+  for (const [voterId, targetId] of Object.entries(room.dayVotes)) {
+    if (targetId === oldId) room.dayVotes[voterId] = newId;
+  }
+  if (room.judgementTargetId === oldId) room.judgementTargetId = newId;
+  if (room.voteAllowedTargetIds) {
+    room.voteAllowedTargetIds = room.voteAllowedTargetIds.map((id) => (id === oldId ? newId : id));
+  }
+  if (room.lastVoteResult?.targetId === oldId) room.lastVoteResult.targetId = newId;
+}
+
 export function getRoom(code: string): Room | undefined {
   return rooms.get(code.toUpperCase());
 }
