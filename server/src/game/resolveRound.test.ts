@@ -12,6 +12,7 @@ function makePlayer(overrides: Partial<Player>): Player {
   return {
     id: "p1",
     nickname: "nick",
+    avatar: null,
     role: "spy",
     hp: 4,
     alive: true,

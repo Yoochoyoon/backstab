@@ -49,11 +49,18 @@ export function defaultAbilityState(): PlayerAbilityState {
 export interface Player {
   id: string;
   nickname: string;
+  // 입장할 때 등록하는 프로필 사진. 작은 정사각형으로 리사이즈한 data URL이며,
+  // 등록하지 않으면 null(그 경우 화면은 닉네임 첫 글자를 대신 보여준다).
+  avatar: string | null;
   role: Role | null;
   hp: number;
   alive: boolean;
   abilities: PlayerAbilityState;
 }
+
+// 프로필 사진 한 장의 상한. 클라이언트가 이미 작게 줄여서 보내지만,
+// 방 상태가 메모리에만 있으므로 서버에서도 한 번 더 막는다.
+export const MAX_AVATAR_BYTES = 40 * 1024;
 
 export interface DamageEntry {
   targetId: string;

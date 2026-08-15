@@ -17,7 +17,7 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 export function assignRoles(
-  players: { id: string; nickname: string }[],
+  players: { id: string; nickname: string; avatar?: string | null }[],
 ): Player[] {
   const composition = ROLE_COMPOSITIONS[players.length];
   if (!composition) {
@@ -31,6 +31,8 @@ export function assignRoles(
     return {
       id: player.id,
       nickname: player.nickname,
+      // 역할 배정은 기존 플레이어 정보를 그대로 이어받는다(사진 포함).
+      avatar: player.avatar ?? null,
       role,
       hp: MAX_HP[role],
       alive: true,

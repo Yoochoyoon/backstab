@@ -1,5 +1,73 @@
 const socket = io();
 
+// 등록한 프로필 사진(작은 정사각형 data URL). 없으면 null.
+let myAvatar = null;
+
+// 사진은 방 상태(메모리)에 담겨 전원에게 브로드캐스트되므로, 보내기 전에 여기서 확실히 줄인다.
+// 원본을 그대로 올리면 수 MB짜리가 8명분 오가면서 폰에서 게임이 버벅인다.
+const AVATAR_SIZE = 128;
+
+function fileToSquareDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("파일을 읽지 못했습니다."));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("이미지를 열지 못했습니다."));
+      img.onload = () => {
+        // 가운데를 정사각형으로 잘라 쓴다 — 카드 자리가 정사각형이라 그래야 안 찌그러진다.
+        const side = Math.min(img.width, img.height);
+        const sx = (img.width - side) / 2;
+        const sy = (img.height - side) / 2;
+        const canvas = document.createElement("canvas");
+        canvas.width = AVATAR_SIZE;
+        canvas.height = AVATAR_SIZE;
+        canvas.getContext("2d").drawImage(img, sx, sy, side, side, 0, 0, AVATAR_SIZE, AVATAR_SIZE);
+        resolve(canvas.toDataURL("image/jpeg", 0.75));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function renderAvatarPicker() {
+  const preview = document.getElementById("avatarPreview");
+  const placeholder = document.getElementById("avatarPlaceholder");
+  const clearBtn = document.getElementById("avatarClearBtn");
+  if (myAvatar) {
+    preview.src = myAvatar;
+    preview.style.display = "block";
+    placeholder.style.display = "none";
+    clearBtn.style.display = "block";
+  } else {
+    preview.removeAttribute("src");
+    preview.style.display = "none";
+    placeholder.style.display = "block";
+    clearBtn.style.display = "none";
+  }
+}
+
+document.getElementById("avatarInput").addEventListener("change", async (e) => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+  try {
+    myAvatar = await fileToSquareDataUrl(file);
+    errorLabel.textContent = "";
+  } catch (err) {
+    myAvatar = null;
+    errorLabel.textContent = "사진을 불러오지 못했습니다. 다른 사진을 골라주세요.";
+  }
+  // 같은 파일을 다시 골라도 change가 뜨도록 값을 비운다.
+  e.target.value = "";
+  renderAvatarPicker();
+});
+
+document.getElementById("avatarClearBtn").addEventListener("click", () => {
+  myAvatar = null;
+  renderAvatarPicker();
+});
+
 const SESSION_KEYS = ["sessionId", "roomCode", "sessionSavedAt"];
 
 // 세션은 탭 전용 sessionStorage를 우선으로 저장하고, localStorage에도 같이 남긴다.
@@ -156,7 +224,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
 
   const code = document.getElementById("codeInput").value.trim().toUpperCase();
   const nickname = document.getElementById("nicknameInput").value.trim();
-  socket.emit("player:join_room", { code, nickname }, (res) => {
+  socket.emit("player:join_room", { code, nickname, avatar: myAvatar }, (res) => {
     if (!res.ok) {
       errorLabel.textContent = res.error;
       return;
@@ -174,7 +242,7 @@ document.getElementById("createRoomBtn").addEventListener("click", () => {
   clearSession();
 
   const nickname = document.getElementById("nicknameInput").value.trim();
-  socket.emit("player:create_room", { nickname }, (res) => {
+  socket.emit("player:create_room", { nickname, avatar: myAvatar }, (res) => {
     if (!res.ok) {
       errorLabel.textContent = res.error;
       return;
@@ -816,7 +884,6 @@ function renderTargetList() {
     if (!selectable) li.classList.add("is-readonly");
 
     const maxHp = getMaxHpForRole(p.role);
-    const initial = p.nickname.charAt(0).toUpperCase();
     const submitted = submittedIds.includes(p.id);
     const roleText = p.role ? ROLE_NAMES[p.role] ?? p.role : "";
     // 역할은 서버가 흘려보낼 때만 붙는다(보스 상시 / 사망자 / 게임 종료 후 전원).
@@ -827,9 +894,9 @@ function renderTargetList() {
         : "";
 
     li.innerHTML = `${p.role === "boss" ? '<span class="na-target-card__tag">보스</span>' : ""}${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}
-      <div class="hp-monitor-card__avatar">${initial}</div>
+      <div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}</div>
       <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}${p.id === myId ? " (나)" : ""}${suffix}</div>
+        <div class="hp-monitor-card__name">${escapeHtml(p.nickname)}${p.id === myId ? " (나)" : ""}${suffix}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
         <div class="hp-monitor-card__pips"></div>
       </div>`;

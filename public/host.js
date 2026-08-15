@@ -155,15 +155,13 @@ function renderGrid() {
     if (p.alive) div.classList.add("is-alive");
     if (!p.alive) div.classList.add("is-dead");
     const maxHp = getMaxHpForRole(p.role);
-    const initial = p.nickname.charAt(0).toUpperCase();
     // 밤 행동/투표 제출 여부 — 누가 이미 제출했고 누가 안 했는지 한눈에 보이게 배지로 표시한다.
     const submitted = p.alive && submittedIds.includes(p.id);
-    // 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정
     // 역할은 서버가 흘려보낼 때만 표시된다: 사망자는 남은 사람들의 토론에 도움이 되도록
     // 게임 도중에도 공개되고, 게임이 끝나면 살아남은 사람 역할까지 전부 공개된다.
-    div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${initial}</div>
+    div.innerHTML = `${submitted ? '<span class="hp-monitor-card__submit-badge">✓ 제출완료</span>' : ""}<div class="hp-monitor-card__avatar">${avatarInnerHtml(p)}</div>
       <div class="hp-monitor-card__body">
-        <div class="hp-monitor-card__name">${p.nickname}${statusLabel(p)}</div>
+        <div class="hp-monitor-card__name">${escapeHtml(p.nickname)}${statusLabel(p)}</div>
         <div class="hp-monitor-card__hp-text">HP ${p.hp}/${maxHp}</div>
         <div class="hp-monitor-card__pips"></div>
       </div>`;
@@ -198,6 +196,8 @@ socket.on("state:players", ({ players: ps }) => {
       bossBanner.classList.remove("is-critical");
     }
     bossBanner.classList.toggle("is-submitted", boss.alive && submittedIds.includes(boss.id));
+    // 재접속 등으로 정보가 갱신될 수 있으니 사진도 매번 다시 그린다.
+    document.getElementById("bossAvatar").innerHTML = avatarInnerHtml(boss);
     const bossMaxHp = getMaxHpForRole("boss");
     document.getElementById("bossHpText").textContent = `HP ${boss.hp}/${bossMaxHp}`;
     renderPipBar(document.getElementById("bossHpPips"), boss.hp, bossMaxHp, "hp-pip--yellow");
@@ -224,7 +224,9 @@ socket.on("state:submission_progress", ({ submittedIds: ids }) => {
 socket.on("public:boss_revealed", ({ nickname }) => {
   document.getElementById("bossBanner").style.display = "flex";
   document.getElementById("bossName").textContent = nickname;
-  document.getElementById("bossAvatar").textContent = nickname.charAt(0).toUpperCase();
+  // 보스 카드 사진도 참가자 카드와 같은 규칙으로 채운다(사진 없으면 첫 글자).
+  const boss = players.find((p) => p.nickname === nickname);
+  document.getElementById("bossAvatar").innerHTML = avatarInnerHtml(boss ?? { nickname });
 });
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {

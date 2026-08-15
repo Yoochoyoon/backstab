@@ -19,6 +19,23 @@ function getMaxHpForRole(role) {
   return role ? MAX_HP_BY_ROLE[role] || 4 : 4;
 }
 
+// 카드 위쪽 사진 자리의 내용물. 사진을 등록했으면 사진을, 아니면 닉네임 첫 글자를 쓴다.
+// 진행자 화면과 참가자 화면이 같은 카드를 쓰므로 여기에 모아둔다.
+function avatarInnerHtml(player) {
+  if (player.avatar) {
+    // 사진 URL은 서버가 data:image/... 만 통과시키므로 그대로 넣어도 안전하다.
+    return `<img class="avatar-photo" src="${player.avatar}" alt="" />`;
+  }
+  return escapeHtml((player.nickname || "?").charAt(0).toUpperCase());
+}
+
+// 닉네임은 사용자 입력이라 HTML에 넣기 전에 반드시 이스케이프한다.
+function escapeHtml(text) {
+  return String(text).replace(/[&<>"']/g, (ch) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
+  })[ch]);
+}
+
 // 보스 카드/플레이어 카드/모바일 대상 카드 등 여러 화면에서 공용으로 쓰는 HP 조각(pip) 렌더러.
 function renderPipBar(container, hp, maxHp, colorClass) {
   container.innerHTML = "";

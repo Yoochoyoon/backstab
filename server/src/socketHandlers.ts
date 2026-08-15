@@ -15,6 +15,7 @@ import {
   Player,
   Role,
   Room,
+  MAX_AVATAR_BYTES,
   MAX_PLAYERS,
   MIN_PLAYERS,
   defaultAbilityState,
@@ -51,6 +52,7 @@ function publicPlayers(room: Room) {
   return room.players.map((p) => ({
     id: p.id,
     nickname: p.nickname,
+    avatar: p.avatar,
     hp: p.hp,
     alive: p.alive,
     // 보스는 02역할.md 기준으로 유일하게 공개된 역할이라 항상 role을 흘려보낸다.
@@ -66,6 +68,7 @@ function revealedPlayers(room: Room) {
   return room.players.map((p) => ({
     id: p.id,
     nickname: p.nickname,
+    avatar: p.avatar,
     hp: p.hp,
     alive: p.alive,
     role: p.role,
@@ -372,15 +375,27 @@ function nicknameError(room: Room, nickname: string): string | null {
   return null;
 }
 
-function addPlayer(room: Room, id: string, nickname: string) {
+function addPlayer(room: Room, id: string, nickname: string, avatar: string | null) {
   room.players.push({
     id,
     nickname,
+    avatar,
     role: null,
     hp: 0,
     alive: true,
     abilities: defaultAbilityState(),
   });
+}
+
+/**
+ * 클라이언트가 보낸 프로필 사진을 검증한다.
+ * 이미지 data URL만 받고, 크기를 넘으면 사진 없이 입장시킨다(입장 자체를 막지는 않는다).
+ */
+function sanitizeAvatar(raw: unknown): string | null {
+  if (typeof raw !== "string" || !raw) return null;
+  if (!raw.startsWith("data:image/")) return null;
+  if (raw.length > MAX_AVATAR_BYTES) return null;
+  return raw;
 }
 
 // 이 프로세스가 언제 떴는지. 방·세션이 전부 메모리에만 있어서 서버가 재시작되면
@@ -468,7 +483,7 @@ export function registerSocketHandlers(io: Server) {
     socket.on(
       "player:create_room",
       (
-        payload: { nickname: string },
+        payload: { nickname: string; avatar?: string },
         callback: (res: {
           ok: boolean;
           error?: string;
@@ -486,7 +501,7 @@ export function registerSocketHandlers(io: Server) {
           return callback({ ok: false, error: invalid });
         }
 
-        addPlayer(room, socket.id, nickname);
+        addPlayer(room, socket.id, nickname, sanitizeAvatar(payload.avatar));
         data.roomCode = room.code;
         data.isHost = true;
         socket.join(room.code);
@@ -499,7 +514,7 @@ export function registerSocketHandlers(io: Server) {
     socket.on(
       "player:join_room",
       (
-        payload: { code: string; nickname: string },
+        payload: { code: string; nickname: string; avatar?: string },
         callback: (res: { ok: boolean; error?: string; playerId?: string; sessionId?: string }) => void,
       ) => {
         const room = getRoom(payload.code ?? "");
@@ -510,7 +525,7 @@ export function registerSocketHandlers(io: Server) {
         const invalid = nicknameError(room, nickname);
         if (invalid) return callback({ ok: false, error: invalid });
 
-        addPlayer(room, socket.id, nickname);
+        addPlayer(room, socket.id, nickname, sanitizeAvatar(payload.avatar));
         data.roomCode = room.code;
         socket.join(room.code);
         const sessionId = createSession(socket.id, room.code);

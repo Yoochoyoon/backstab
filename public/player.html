@@ -22,6 +22,17 @@
       <input id="nicknameInput" class="join-input join-input--underline" placeholder="이름 입력" maxlength="7" />
     </div>
 
+    <!-- 프로필 사진(선택). 고르면 클라이언트에서 작은 정사각형으로 줄여서 보낸다. -->
+    <div class="join-field join-avatar">
+      <span class="join-label">프로필 사진 (선택)</span>
+      <label class="join-avatar__picker" for="avatarInput">
+        <img id="avatarPreview" class="join-avatar__preview" alt="" style="display:none" />
+        <span id="avatarPlaceholder" class="join-avatar__placeholder">＋</span>
+        <input id="avatarInput" type="file" accept="image/*" hidden />
+      </label>
+      <button type="button" id="avatarClearBtn" class="join-avatar__clear" style="display:none">사진 지우기</button>
+    </div>
+
     <button id="joinBtn" class="join-start-btn">입장하기</button>
     <!-- 진행자용 화면 없이 폰만으로 방을 열 수 있게 한다. 방 코드는 비워두고 이름만 적으면 된다. -->
     <button id="createRoomBtn" class="join-create-btn">이름만 적고 새 방 만들기</button>

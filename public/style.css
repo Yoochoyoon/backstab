@@ -374,6 +374,55 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   color: #FFE500;
 }
 
+/* 입장 화면의 프로필 사진 등록 — 원형 미리보기를 눌러 사진을 고른다. */
+.join-avatar {
+  position: relative;
+  z-index: 4;
+  align-items: center;
+  gap: 1vh;
+}
+
+.join-avatar__picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(14vh, 26cqw);
+  height: min(14vh, 26cqw);
+  border-radius: 50%;
+  overflow: hidden;
+  background: #000;
+  border: 0.4vh solid #FFE500;
+  cursor: pointer;
+}
+
+.join-avatar__preview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.join-avatar__placeholder {
+  color: #FFE500;
+  font-size: min(6vh, 11cqw);
+  line-height: 1;
+}
+
+.join-avatar__clear {
+  --btn-accent: #FFE500;
+  width: auto;
+  min-height: 0;
+  padding: 0.6vh 2vh;
+  background: transparent;
+  border: 0.25vh solid #FFE500;
+  border-radius: 1vh;
+  color: #FFE500;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
+  font-size: min(1.7vh, 3.2cqw);
+  cursor: pointer;
+}
+
 .join-error,
 .create-error {
   position: relative;
@@ -1530,7 +1579,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 /* 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정 */
 .boss-sticker__avatar {
+  /* 사진(높이 100%)이 들어와도 이 칸이 카드를 다 먹지 않게 못박는다 —
+     안 그러면 이름·HP·조각이 카드 밖으로 밀려 잘린다. */
+  flex: none;
   aspect-ratio: 16 / 9;
+  max-height: 46%;
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1784,8 +1838,9 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   white-space: nowrap;
 }
 
-/* 캐릭터 사진 자리 — 지금은 이니셜 플레이스홀더, 나중에 실제 캐릭터 이미지로 교체 예정 */
+/* 프로필 사진 자리 — 사진을 등록했으면 사진, 아니면 닉네임 첫 글자. */
 .hp-monitor-card__avatar {
+  position: relative;
   flex-shrink: 0;
   aspect-ratio: 1 / 1;
   display: flex;
@@ -1795,6 +1850,15 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   color: #fff;
   font-family: 'Rubik Mono One', sans-serif;
   font-size: min(4cqw, 4.4vh);
+  overflow: hidden;
+}
+
+/* 정사각형 자리를 꽉 채우되 비율은 유지한다(잘라서 채움). */
+.avatar-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .hp-monitor-card__body {
