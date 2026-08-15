@@ -690,7 +690,10 @@ function renderJudgementPanel() {
     return;
   }
   section.style.display = "flex";
-  document.getElementById("judgementName").textContent = judgementTarget.nickname;
+  const nameEl = document.getElementById("judgementName");
+  nameEl.textContent = judgementTarget.nickname;
+  // 글자 수를 CSS에 넘겨 긴 닉네임일수록 글자를 줄인다(항상 한 줄 유지).
+  nameEl.style.setProperty("--name-len", Math.max(judgementTarget.nickname.length, 2));
 
   const target = players.find((p) => p.id === judgementTarget.id);
   document.getElementById("judgementHp").textContent = target

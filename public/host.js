@@ -325,7 +325,10 @@ socket.on("state:vote_result", ({ tie, finalTie, topTargetId }) => {
 
 socket.on("state:judgement_started", ({ nickname }) => {
   const poster = document.getElementById("judgementPoster");
-  document.getElementById("judgementPosterName").textContent = nickname;
+  const nameEl = document.getElementById("judgementPosterName");
+  nameEl.textContent = nickname;
+  // 글자 수를 CSS에 넘겨 긴 닉네임일수록 글자를 줄인다(항상 한 줄 유지).
+  nameEl.style.setProperty("--name-len", Math.max(nickname.length, 2));
   document.getElementById("judgementPosterSub").textContent = "처단할지 찬반 투표 중";
   poster.style.display = "flex";
   showSlide("⚖️", "최종 심판", `${nickname}을(를) 처단할까요?`);

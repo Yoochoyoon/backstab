@@ -789,11 +789,11 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .judgement__name {
   font-family: 'Rubik Mono One', sans-serif;
-  font-size: min(6.4vh, 12cqw);
+  /* 진행자 화면과 같은 규칙 — 글자 수에 맞춰 줄여 항상 한 줄에 담는다. */
+  font-size: min(6.4vh, 12cqw, calc(64cqw / var(--name-len, 3)));
   line-height: 1.1;
   color: #000;
-  /* 긴 닉네임이 포스터를 넘치게 하지 않도록. */
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   text-align: center;
 }
 
@@ -891,35 +891,42 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1vh;
-  padding: 3vh 6vw;
+  gap: 1.6vh;
+  padding: 5vh 8cqw;
+  /* 닉네임이 길어도(최대 7자) 화면 밖으로 나가지 않게 폭을 묶어둔다 —
+     넘치면 overflow-wrap으로 줄바꿈된다. */
+  max-width: 80cqw;
+  box-sizing: border-box;
   background: #fff;
-  border: 0.8vh solid #000;
+  border: 1vh solid #000;
   border-radius: 1vh;
-  box-shadow: 1vw 1vh 0 rgba(0, 0, 0, 0.7);
+  box-shadow: 1.4cqw 1.4vh 0 rgba(0, 0, 0, 0.7);
 }
 
 .judgement-poster__label {
   font-family: 'Noto Sans KR', sans-serif;
   font-weight: 900;
-  font-size: min(3vh, 3cqw);
+  font-size: min(4.4vh, 4cqw);
   letter-spacing: 0.3em;
   color: #E4180F;
 }
 
 .judgement-poster__name {
   font-family: 'Rubik Mono One', sans-serif;
-  font-size: min(12vh, 12cqw);
+  /* 짧은 닉네임은 최대 크기로, 긴 닉네임(최대 7자)은 글자 수에 맞춰 줄여서
+     항상 한 줄에 들어가게 한다. --name-len은 host.js가 채워준다 —
+     안 채워져도 기본값으로 동작한다. */
+  font-size: min(20vh, 17cqw, calc(60cqw / var(--name-len, 3)));
   line-height: 1.05;
   color: #000;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
   text-align: center;
 }
 
 .judgement-poster__sub {
   font-family: 'Noto Sans KR', sans-serif;
   font-weight: 700;
-  font-size: min(2.4vh, 2.4cqw);
+  font-size: min(3.4vh, 3cqw);
   color: #444;
 }
 
