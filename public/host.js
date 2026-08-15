@@ -8,6 +8,8 @@ const PHASE_ICON_MAP = {
   day_reveal: "discussion",
   day_discussion: "discussion",
   day_vote: "vote",
+  // 심판도 투표의 연장이라 같은 아이콘을 켜둔다.
+  day_judgement: "vote",
 };
 
 const HOST_SESSION_KEYS = ["hostSessionId", "hostRoomCode", "hostSessionSavedAt"];
@@ -238,6 +240,11 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
 
   errorLabel.textContent = "";
   document.getElementById("winnerLabel").style.display = "none";
+  // 심판이 끝난 뒤(또는 재접속으로 화면이 복원될 때) 포스터가 남아있지 않게 한다.
+  // 심판 시작 이벤트가 오면 다시 켜진다.
+  if (phase !== "day_judgement") {
+    document.getElementById("judgementPoster").style.display = "none";
+  }
   if (phase === "lobby") {
     document.getElementById("phaseLabel").textContent = "플레이어 입장 대기 중";
     document.getElementById("timerLabel").textContent = "";
@@ -292,21 +299,60 @@ socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
   showSlide("☀️", "밤 사이 벌어진 일", sub);
 });
 
-socket.on("state:vote_result", ({ damageLog, tie, finalTie, topTargetId, players: updatedPlayers }) => {
-  showResult("🗳 투표 결과", damageLog, tie ? (finalTie ? "동점 - 데미지 없음" : "동점 - 재투표") : undefined);
+socket.on("state:vote_result", ({ tie, finalTie, topTargetId }) => {
+  // 지목만으로는 데미지가 없다(찬반 심판을 거쳐야 한다). damageLog는 항상 비어 있으므로
+  // 결과 로그에는 "누가 지목됐는지"를 직접 적어준다.
+  let note;
+  if (tie) {
+    note = finalTie ? "동점 - 데미지 없음" : "동점 - 재투표";
+  } else if (topTargetId) {
+    note = `${nameOf(topTargetId)} 최종 지목 - 심판으로 넘어갑니다`;
+  } else {
+    note = "아무도 지목되지 않았습니다";
+  }
+  showResult("🗳 투표 결과", [], note);
 
   let sub;
   if (tie) {
     sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
   } else if (topTargetId) {
-    const deadTarget = (updatedPlayers || []).find((p) => p.id === topTargetId && !p.alive);
-    sub =
-      `${nameOf(topTargetId)}가 최종 지목되었습니다` +
-      (deadTarget ? `\n사망 (${ROLE_NAMES[deadTarget.role] ?? deadTarget.role})` : "");
+    sub = `${nameOf(topTargetId)}가 최종 지목되었습니다`;
   } else {
     sub = "아무도 지목되지 않았습니다";
   }
   showSlide("🗳️", "투표 결과", sub);
+});
+
+socket.on("state:judgement_started", ({ nickname }) => {
+  const poster = document.getElementById("judgementPoster");
+  document.getElementById("judgementPosterName").textContent = nickname;
+  document.getElementById("judgementPosterSub").textContent = "처단할지 찬반 투표 중";
+  poster.style.display = "flex";
+  showSlide("⚖️", "최종 심판", `${nickname}을(를) 처단할까요?`);
+});
+
+socket.on("state:judgement_result", ({ nickname, approve, oppose, passed, players: updated }) => {
+  if (updated) players = updated;
+  document.getElementById("judgementPoster").style.display = "none";
+
+  const summary = `찬성 ${approve} · 반대 ${oppose}`;
+  const target = players.find((p) => p.nickname === nickname);
+  const died = passed && target && !target.alive;
+  showResult(
+    "⚖ 심판 결과",
+    [],
+    passed
+      ? `${nickname} 처단 가결 (${summary})${died ? ` · 사망 (${ROLE_NAMES[target.role] ?? target.role})` : ""}`
+      : `${nickname} 처단 부결 (${summary})`,
+  );
+  showSlide(
+    passed ? "⚔️" : "🕊️",
+    passed ? "처단 가결" : "처단 부결",
+    passed
+      ? `${nickname} 데미지 1 (${summary})${died ? "\n사망" : ""}`
+      : `${nickname}은(는) 살아남았습니다 (${summary})`,
+  );
+  renderGrid();
 });
 
 socket.on("state:game_over", ({ winner }) => {

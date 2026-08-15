@@ -135,19 +135,14 @@ export function resolveNightAttacks(
 }
 
 /**
- * 낮 투표 해석: 최다득표자에게 고정 데미지 1. 동점이면 데미지 없이 동점자 목록만 반환한다
- * (03라운드진행.md: 동점자만 즉시 재투표).
+ * 낮 지목 투표 집계: 최다득표자가 누구인지만 가려낸다. 데미지는 여기서 주지 않는다 —
+ * 지목된 사람은 곧바로 처형되는 게 아니라 찬반 심판(resolveJudgement)을 한 번 더 거친다.
+ * 동점이면 topTargetId 없이 동점자 목록만 반환한다(03라운드진행.md: 동점자만 즉시 재투표).
  */
-export function resolveDayVote(
+export function tallyDayVote(
   players: Player[],
   votes: Record<string, string>,
-  voteDamage = 1,
-): {
-  updatedPlayers: Player[];
-  damageLog: DamageEntry[];
-  topTargetId: string | null;
-  tiedTargetIds: string[];
-} {
+): { topTargetId: string | null; tiedTargetIds: string[] } {
   const voteCounts = new Map<string, number>();
   for (const [voterId, targetId] of Object.entries(votes)) {
     const voter = players.find((p) => p.id === voterId);
@@ -155,25 +150,51 @@ export function resolveDayVote(
     voteCounts.set(targetId, (voteCounts.get(targetId) ?? 0) + 1);
   }
 
-  if (voteCounts.size === 0) {
-    return { updatedPlayers: clonePlayers(players), damageLog: [], topTargetId: null, tiedTargetIds: [] };
-  }
+  if (voteCounts.size === 0) return { topTargetId: null, tiedTargetIds: [] };
 
   const maxVotes = Math.max(...voteCounts.values());
   const tiedTargetIds = [...voteCounts.entries()]
     .filter(([, count]) => count === maxVotes)
     .map(([targetId]) => targetId);
 
-  if (tiedTargetIds.length > 1) {
-    return { updatedPlayers: clonePlayers(players), damageLog: [], topTargetId: null, tiedTargetIds };
+  if (tiedTargetIds.length > 1) return { topTargetId: null, tiedTargetIds };
+  return { topTargetId: tiedTargetIds[0], tiedTargetIds: [] };
+}
+
+/**
+ * 찬반 심판 해석: 지목된 대상자를 실제로 칠지 말지 결정한다.
+ * - 찬성이 반대보다 많아야 가결. 동수·기권(미제출)은 부결로 본다.
+ * - 가결되면 고정 데미지 1 (03라운드진행.md의 낮 투표 데미지를 그대로 유지).
+ * - 대상자 본인도 투표에 참여할 수 있다.
+ */
+export function resolveJudgement(
+  players: Player[],
+  targetId: string,
+  judgementVotes: Record<string, boolean>,
+  voteDamage = 1,
+): {
+  updatedPlayers: Player[];
+  damageLog: DamageEntry[];
+  approve: number;
+  oppose: number;
+  passed: boolean;
+} {
+  let approve = 0;
+  let oppose = 0;
+  for (const [voterId, isApprove] of Object.entries(judgementVotes)) {
+    const voter = players.find((p) => p.id === voterId);
+    if (!voter || !voter.alive) continue;
+    if (isApprove) approve += 1;
+    else oppose += 1;
   }
 
-  const topTargetId = tiedTargetIds[0];
-  const { updatedPlayers, damageLog } = applyDamage(
-    players,
-    new Map([[topTargetId, voteDamage]]),
-  );
-  return { updatedPlayers, damageLog, topTargetId, tiedTargetIds: [] };
+  const passed = approve > oppose;
+  if (!passed) {
+    return { updatedPlayers: clonePlayers(players), damageLog: [], approve, oppose, passed };
+  }
+
+  const { updatedPlayers, damageLog } = applyDamage(players, new Map([[targetId, voteDamage]]));
+  return { updatedPlayers, damageLog, approve, oppose, passed };
 }
 
 /**

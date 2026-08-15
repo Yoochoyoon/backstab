@@ -129,6 +129,8 @@ let spyTeammates = [];
 let spyTeammatePreview = {};
 let leaderId = null;
 let myRoomCode = null;
+let judgementTarget = null; // { id, nickname }
+let myJudgement = null; // true=찬성, false=반대, null=미제출
 let myNightOptions = { canAttack: true, specialActions: [] };
 let selectedAction = "attack";
 let selectedShieldMode = "absorb";
@@ -392,6 +394,16 @@ function applyPhase(phase, round, phaseEndsAt) {
     document.getElementById("shieldModeChoices").style.display = "none";
     document.getElementById("summaryActionRow").style.display = "none";
     renderTargetList();
+  } else if (phase === "day_judgement") {
+    // 지목 대상은 크게 띄운 심판 패널에서 고르므로, 지목용 목록/확정 버튼은 숨긴다.
+    instructionLabel.textContent = "지목된 사람을 처단할지 찬반으로 정하세요.";
+    submitBtn.style.display = "none";
+    summaryPanel.style.display = "none";
+    document.getElementById("actionSection").style.display = "none";
+    document.getElementById("targetSection").style.display = "none";
+    document.getElementById("shieldModeChoices").style.display = "none";
+    document.getElementById("summaryActionRow").style.display = "none";
+    document.getElementById("targetList").innerHTML = "";
   } else if (phase === "day_reveal") {
     instructionLabel.textContent = "밤 사이 벌어진 일이 공개됩니다. 진행자가 토론을 시작할 때까지 기다려주세요.";
     submitBtn.style.display = "none";
@@ -422,6 +434,7 @@ function applyPhase(phase, round, phaseEndsAt) {
   renderSpyCoordPanel();
   renderRoster();
   renderChatPanel();
+  renderJudgementPanel();
 }
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
@@ -459,23 +472,25 @@ socket.on("state:night_result", ({ damageLog, players: updatedPlayers }) => {
   showSlide("☀️", "밤 사이 벌어진 일", sub);
 });
 
-socket.on("state:vote_result", ({ damageLog, tie, tiedTargetIds, finalTie, topTargetId, players: updatedPlayers }) => {
+socket.on("state:vote_result", ({ tie, tiedTargetIds, finalTie, topTargetId, players: updatedPlayers }) => {
+  // 지목 단계에서는 데미지가 발생하지 않는다 — 실제 피해는 찬반 심판을 통과해야 들어간다.
+  const nameOfFresh = (id) => (updatedPlayers || players).find((p) => p.id === id)?.nickname ?? "???";
+  let note;
   if (tie) {
     voteAllowedTargetIds = tiedTargetIds ?? null;
-    showResult("🗳 투표 결과", [], finalTie ? "동점으로 이번 라운드는 데미지 없이 종료됩니다." : "동점! 동점자 중에서 재투표합니다.");
+    note = finalTie ? "동점으로 이번 라운드는 데미지 없이 종료됩니다." : "동점! 동점자 중에서 재투표합니다.";
+  } else if (topTargetId) {
+    note = `${nameOfFresh(topTargetId)} 최종 지목 - 심판으로 넘어갑니다`;
   } else {
-    showResult("🗳 투표 결과", damageLog);
+    note = "아무도 지목되지 않았습니다.";
   }
+  showResult("🗳 투표 결과", [], note);
 
   let sub;
   if (tie) {
     sub = finalTie ? "동점으로 이번 라운드는 피해 없이 종료됩니다" : "동점! 동점자끼리 재투표합니다";
   } else if (topTargetId) {
-    const nameOfFresh = (id) => (updatedPlayers || players).find((p) => p.id === id)?.nickname ?? "???";
-    const deadTarget = (updatedPlayers || []).find((p) => p.id === topTargetId && !p.alive);
-    sub =
-      `${nameOfFresh(topTargetId)}가 최종 지목되었습니다` +
-      (deadTarget ? `\n사망 (${ROLE_NAMES[deadTarget.role] ?? deadTarget.role})` : "");
+    sub = `${nameOfFresh(topTargetId)}가 최종 지목되었습니다`;
   } else {
     sub = "아무도 지목되지 않았습니다";
   }
@@ -532,6 +547,12 @@ socket.on("state:full_sync", (data) => {
   // 재접속하면 동점자 제한이 풀린 채로 보였다 — 그러면 엉뚱한 사람을 찍게 되고
   // 서버는 그 표를 조용히 버린다(제출했는데 배지가 안 뜨는 그 증상).
   voteAllowedTargetIds = data.voteAllowedTargetIds ?? null;
+  // 심판 도중 재접속했으면 누가 지목돼 있는지 복원한다(내가 이미 던진 표는 서버가
+  // 갖고 있으므로, 화면에서는 다시 고를 수 있게 둔다 — 같은 값으로 덮어쓰면 그만이다).
+  judgementTarget = data.judgementTargetId
+    ? { id: data.judgementTargetId, nickname: data.judgementTargetNickname ?? "???" }
+    : null;
+  myJudgement = null;
 
   // 재접속 시 그동안 오간 대화를 복원한다. 중복으로 쌓이지 않게 먼저 비운다.
   document.getElementById("chatLog").innerHTML = "";
@@ -658,7 +679,83 @@ function renderRoster() {
 }
 
 // 서버의 CHATTABLE_PHASES와 같은 목록 — 밤은 정보 비대칭 유지를 위해 제외.
-const CHATTABLE_PHASES = ["day_reveal", "day_discussion", "day_vote"];
+// 심판 단계는 지목된 사람이 변론해야 하므로 포함한다.
+const CHATTABLE_PHASES = ["day_reveal", "day_discussion", "day_vote", "day_judgement"];
+
+// 지목된 대상자를 크게 띄우고 찬반만 받는 화면.
+function renderJudgementPanel() {
+  const section = document.getElementById("judgementSection");
+  if (currentPhase !== "day_judgement" || !judgementTarget) {
+    section.style.display = "none";
+    return;
+  }
+  section.style.display = "flex";
+  document.getElementById("judgementName").textContent = judgementTarget.nickname;
+
+  const target = players.find((p) => p.id === judgementTarget.id);
+  document.getElementById("judgementHp").textContent = target
+    ? `HP ${target.hp}/${getMaxHpForRole(target.role)}`
+    : "";
+
+  const me = players.find((p) => p.id === myId);
+  const canVote = me ? me.alive : false;
+  const approveBtn = document.getElementById("judgeApproveBtn");
+  const opposeBtn = document.getElementById("judgeOpposeBtn");
+  approveBtn.disabled = !canVote;
+  opposeBtn.disabled = !canVote;
+  approveBtn.classList.toggle("is-chosen", myJudgement === true);
+  opposeBtn.classList.toggle("is-chosen", myJudgement === false);
+
+  const note = document.getElementById("judgementNote");
+  if (!canVote) {
+    note.textContent = "사망해서 심판에 참여할 수 없습니다.";
+  } else if (myJudgement === null) {
+    note.textContent =
+      judgementTarget.id === myId ? "당신이 지목되었습니다. 변론하세요." : "";
+  } else {
+    note.textContent = myJudgement ? "찬성했습니다." : "반대했습니다.";
+  }
+}
+
+function submitJudgement(approve) {
+  myJudgement = approve;
+  socket.emit("player:submit_judgement", { approve });
+  renderJudgementPanel();
+}
+
+document.getElementById("judgeApproveBtn").addEventListener("click", () => submitJudgement(true));
+document.getElementById("judgeOpposeBtn").addEventListener("click", () => submitJudgement(false));
+
+socket.on("state:judgement_started", ({ targetId, nickname }) => {
+  judgementTarget = { id: targetId, nickname };
+  myJudgement = null;
+  showSlide("⚖️", "최종 심판", `${nickname}을(를) 처단할까요?`);
+  renderJudgementPanel();
+});
+
+socket.on("state:judgement_result", ({ nickname, approve, oppose, passed, players: updated }) => {
+  if (updated) players = updated;
+  const summary = `찬성 ${approve} · 반대 ${oppose}`;
+  const target = players.find((p) => p.nickname === nickname);
+  const died = passed && target && !target.alive;
+  showResult(
+    "⚖ 심판 결과",
+    [],
+    passed
+      ? `${nickname} 처단 가결 (${summary})${died ? ` — 사망 (${ROLE_NAMES[target.role] ?? target.role})` : ""}`
+      : `${nickname} 처단 부결 (${summary})`,
+  );
+  showSlide(
+    passed ? "⚔️" : "🕊️",
+    passed ? "처단 가결" : "처단 부결",
+    passed
+      ? `${nickname} 데미지 1 (${summary})${died ? "\n사망" : ""}`
+      : `${nickname}은(는) 살아남았습니다 (${summary})`,
+  );
+  judgementTarget = null;
+  myJudgement = null;
+  renderRoster();
+});
 
 function appendChatMessage({ nickname, text }) {
   const log = document.getElementById("chatLog");

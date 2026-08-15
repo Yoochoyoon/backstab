@@ -6,6 +6,8 @@ export type Phase =
   | "day_reveal"
   | "day_discussion"
   | "day_vote"
+  // 지목 투표에서 한 명이 정해진 뒤, 그 사람을 실제로 칠지 찬반으로 정하는 심판 단계.
+  | "day_judgement"
   | "game_over";
 
 export type NightActionType =
@@ -75,6 +77,9 @@ export interface Room {
   lastVoteResult: { targetId: string | null; tie: boolean } | null;
   voteAllowedTargetIds: string[] | null;
   voteIsRevote: boolean;
+  // 찬반 심판 대상자와 표. true=찬성(치자), false=반대(살리자).
+  judgementTargetId: string | null;
+  judgementVotes: Record<string, boolean>;
   winner: Role | null;
   phaseEndsAt: number | null;
   phaseTimer: NodeJS.Timeout | null;
@@ -131,6 +136,8 @@ export const PHASE_DURATIONS_MS: Partial<Record<Phase, number>> = {
   day_reveal: 30 * 1000,
   day_discussion: 5 * 60 * 1000,
   day_vote: 2 * 60 * 1000,
+  // 지목된 사람의 변론과 찬반 결정만 하면 되므로 지목 투표보다 짧게 잡는다.
+  day_judgement: 60 * 1000,
 };
 
 export interface PlayerSession {

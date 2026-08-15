@@ -757,6 +757,152 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   box-shadow: 0 0 0 0.25vh #2ECC71;
 }
 
+/* 찬반 심판(플레이어 화면) — 지목된 사람을 수배 포스터처럼 크게 띄우고 찬반만 받는다. */
+.judgement {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6vh;
+}
+
+.judgement__poster {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6vh;
+  padding: 2.4vh 2vw;
+  background: #fff;
+  border: 0.5vh solid #000;
+  border-radius: 1vh;
+  box-shadow: 0.8vw 0.8vh 0 rgba(0, 0, 0, 0.6);
+  transform: skewX(-8deg);
+}
+
+.judgement__label {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(2vh, 3.8cqw);
+  letter-spacing: 0.2em;
+  color: #E4180F;
+}
+
+.judgement__name {
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: min(6.4vh, 12cqw);
+  line-height: 1.1;
+  color: #000;
+  /* 긴 닉네임이 포스터를 넘치게 하지 않도록. */
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.judgement__hp {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(2vh, 3.8cqw);
+  color: #444;
+}
+
+.judgement__question {
+  margin: 0;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(2.4vh, 4.6cqw);
+  color: #FFE500;
+}
+
+.judgement__buttons {
+  display: flex;
+  gap: 3vw;
+  width: 100%;
+}
+
+.judgement__btn {
+  flex: 1;
+  min-height: 48px;
+  padding: 1.4vh 0;
+  border-radius: 1vh;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(2.4vh, 4.6cqw);
+  cursor: pointer;
+}
+
+.judgement__btn--approve {
+  background: #000;
+  border: 0.4vh solid #E4180F;
+  color: #E4180F;
+}
+
+.judgement__btn--oppose {
+  background: #000;
+  border: 0.4vh solid #2ECC71;
+  color: #2ECC71;
+}
+
+/* 고른 쪽을 채워서 "냈다"는 게 한눈에 보이게 한다. */
+.judgement__btn--approve.is-chosen {
+  background: #E4180F;
+  color: #fff;
+}
+
+.judgement__btn--oppose.is-chosen {
+  background: #2ECC71;
+  color: #000;
+}
+
+.judgement__note {
+  margin: 0;
+  min-height: 1.2em;
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: min(1.8vh, 3.4cqw);
+  color: #FFE500;
+  text-align: center;
+}
+
+/* 찬반 심판(진행자/TV 화면) — 방 전체가 같이 보는 큰 수배 포스터. */
+.judgement-poster {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) skewX(-8deg);
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1vh;
+  padding: 3vh 6vw;
+  background: #fff;
+  border: 0.8vh solid #000;
+  border-radius: 1vh;
+  box-shadow: 1vw 1vh 0 rgba(0, 0, 0, 0.7);
+}
+
+.judgement-poster__label {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 900;
+  font-size: min(3vh, 3cqw);
+  letter-spacing: 0.3em;
+  color: #E4180F;
+}
+
+.judgement-poster__name {
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: min(12vh, 12cqw);
+  line-height: 1.05;
+  color: #000;
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+
+.judgement-poster__sub {
+  font-family: 'Noto Sans KR', sans-serif;
+  font-weight: 700;
+  font-size: min(2.4vh, 2.4cqw);
+  color: #444;
+}
+
 /* 토론용 채팅 — 오프라인에선 입으로 하던 토론을 온라인에서 대체하는 부분이다. */
 .chat-log {
   list-style: none;

@@ -1,6 +1,11 @@
 import type { Server, Socket } from "socket.io";
 import { assignRoles } from "./game/roleAssignment.js";
-import { checkWinner, resolveDayVote, resolveNightAttacks } from "./game/resolveRound.js";
+import {
+  checkWinner,
+  resolveJudgement,
+  resolveNightAttacks,
+  tallyDayVote,
+} from "./game/resolveRound.js";
 import {
   LOBBY_DISCONNECT_GRACE_MS,
   NightAction,
@@ -32,7 +37,13 @@ interface SocketData {
 // 채팅이 열리는 페이즈. 밤은 일부러 뺐다 — 밤의 정보 비대칭이 이 게임의 핵심이라
 // 밤에 자유 대화를 허용하면 스파이 합공 조율이 사실상 공개 협의가 돼버린다.
 // (스파이끼리의 밤 신호는 이미 spy:teammate_preview / #spyCoordPanel로 따로 있다.)
-const CHATTABLE_PHASES = new Set<Phase>(["day_reveal", "day_discussion", "day_vote"]);
+// day_judgement도 포함한다 — 지목된 사람이 변론할 수 있어야 심판 단계가 의미가 있다.
+const CHATTABLE_PHASES = new Set<Phase>([
+  "day_reveal",
+  "day_discussion",
+  "day_vote",
+  "day_judgement",
+]);
 const CHAT_MAX_LENGTH = 200;
 const CHAT_MIN_INTERVAL_MS = 400;
 const CHAT_LOG_LIMIT = 200;
@@ -87,6 +98,7 @@ function emitState(io: Server, room: Room) {
 function currentSubmittedIds(room: Room): string[] {
   if (room.phase === "night") return Object.keys(room.nightActions);
   if (room.phase === "day_vote") return Object.keys(room.dayVotes);
+  if (room.phase === "day_judgement") return Object.keys(room.judgementVotes);
   return [];
 }
 
@@ -218,10 +230,7 @@ function startVotePhase(io: Server, room: Room) {
 }
 
 function resolveVote(io: Server, room: Room) {
-  const { updatedPlayers, damageLog, topTargetId, tiedTargetIds } = resolveDayVote(
-    room.players,
-    room.dayVotes,
-  );
+  const { topTargetId, tiedTargetIds } = tallyDayVote(room.players, room.dayVotes);
 
   if (tiedTargetIds.length > 1) {
     if (room.voteIsRevote) {
@@ -253,16 +262,70 @@ function resolveVote(io: Server, room: Room) {
     return;
   }
 
-  room.players = updatedPlayers;
   room.voteIsRevote = false;
   room.voteAllowedTargetIds = null;
   room.lastVoteResult = { targetId: topTargetId, tie: false };
+
+  // 아무도 투표하지 않아 지목자가 없으면 심판할 대상도 없다.
+  if (!topTargetId) {
+    io.to(room.code).emit("state:vote_result", {
+      damageLog: [],
+      topTargetId: null,
+      tie: false,
+      players: publicPlayers(room),
+    });
+    advanceToNextRound(io, room);
+    return;
+  }
+
+  // 지목만으로는 아무도 다치지 않는다 — 찬반 심판을 한 번 더 거친다.
   io.to(room.code).emit("state:vote_result", {
-    damageLog,
+    damageLog: [],
     topTargetId,
     tie: false,
     players: publicPlayers(room),
   });
+  startJudgementPhase(io, room, topTargetId);
+}
+
+function startJudgementPhase(io: Server, room: Room, targetId: string) {
+  room.judgementTargetId = targetId;
+  room.judgementVotes = {};
+  const target = room.players.find((p) => p.id === targetId);
+  io.to(room.code).emit("state:judgement_started", {
+    targetId,
+    nickname: target?.nickname ?? "???",
+  });
+  scheduleTimedPhase(io, room, "day_judgement", () => resolveJudgementPhase(io, room));
+}
+
+function resolveJudgementPhase(io: Server, room: Room) {
+  const targetId = room.judgementTargetId;
+  if (!targetId) {
+    advanceToNextRound(io, room);
+    return;
+  }
+
+  const { updatedPlayers, damageLog, approve, oppose, passed } = resolveJudgement(
+    room.players,
+    targetId,
+    room.judgementVotes,
+  );
+  room.players = updatedPlayers;
+  const target = room.players.find((p) => p.id === targetId);
+
+  io.to(room.code).emit("state:judgement_result", {
+    targetId,
+    nickname: target?.nickname ?? "???",
+    approve,
+    oppose,
+    passed,
+    damageLog,
+    players: publicPlayers(room),
+  });
+
+  room.judgementTargetId = null;
+  room.judgementVotes = {};
 
   const winner = checkWinner(room.players);
   if (winner) {
@@ -486,6 +549,10 @@ export function registerSocketHandlers(io: Server) {
           chatLog: room.chatLog,
           // 로비에서 재접속한 방장이 "시작" 버튼을 되찾을 수 있게 같이 보낸다.
           leaderId: room.hostId,
+          // 심판 단계 도중 재접속하면 누가 지목돼 있는지 다시 알려줘야 한다.
+          judgementTargetId: room.judgementTargetId,
+          judgementTargetNickname:
+            room.players.find((p) => p.id === room.judgementTargetId)?.nickname ?? null,
         });
       },
     );
@@ -559,6 +626,16 @@ export function registerSocketHandlers(io: Server) {
       emitSubmissionProgress(io, room);
     });
 
+    socket.on("player:submit_judgement", (payload: { approve: boolean }) => {
+      const room = data.roomCode ? getRoom(data.roomCode) : undefined;
+      if (!room || room.phase !== "day_judgement") return;
+      const player = room.players.find((p) => p.id === socket.id);
+      // 대상자 본인도 투표할 수 있다(자기를 살리려 반대표를 던지는 게 자연스럽다).
+      if (!player || !player.alive) return;
+      room.judgementVotes[socket.id] = Boolean(payload?.approve);
+      emitSubmissionProgress(io, room);
+    });
+
     socket.on(
       "chat:send",
       (payload: { text: string }, callback?: (res: { ok: boolean; error?: string }) => void) => {
@@ -600,6 +677,7 @@ export function registerSocketHandlers(io: Server) {
       else if (room.phase === "day_reveal") startDiscussionPhase(io, room);
       else if (room.phase === "day_discussion") startVotePhase(io, room);
       else if (room.phase === "day_vote") resolveVote(io, room);
+      else if (room.phase === "day_judgement") resolveJudgementPhase(io, room);
     });
 
     socket.on("host:extend_phase", (payload: { extraMs?: number }) => {

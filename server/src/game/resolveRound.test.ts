@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { checkWinner, resolveDayVote, resolveNightAttacks } from "./resolveRound.js";
+import {
+  checkWinner,
+  resolveJudgement,
+  resolveNightAttacks,
+  tallyDayVote,
+} from "./resolveRound.js";
 import { NightAction, Player, defaultAbilityState } from "./types.js";
 
 function makePlayer(overrides: Partial<Player>): Player {
@@ -205,31 +210,81 @@ test("traitor_smile deals boosted damage, heals per death this round (capped), a
   assert.equal(traitor.abilities.traitorSmileUsed, true);
 });
 
-test("resolveDayVote applies fixed damage 1 to the top-voted player", () => {
-  const players = [
-    makePlayer({ id: "a" }),
-    makePlayer({ id: "b" }),
-    makePlayer({ id: "c" }),
-  ];
-  const { updatedPlayers, topTargetId, tiedTargetIds } = resolveDayVote(players, {
-    a: "c",
-    b: "c",
-  });
+test("tallyDayVote는 최다득표자만 가려내고 데미지는 주지 않는다", () => {
+  const players = [makePlayer({ id: "a" }), makePlayer({ id: "b" }), makePlayer({ id: "c" })];
+  const { topTargetId, tiedTargetIds } = tallyDayVote(players, { a: "c", b: "c" });
   assert.equal(topTargetId, "c");
   assert.deepEqual(tiedTargetIds, []);
-  assert.equal(updatedPlayers.find((p) => p.id === "c")!.hp, 3);
+  // 지목만으로는 아무도 다치지 않는다 — 데미지는 찬반 심판을 통과해야 들어간다.
+  assert.equal(players.find((p) => p.id === "c")!.hp, 4);
 });
 
-test("resolveDayVote reports a tie without applying damage", () => {
+test("tallyDayVote는 동점이면 동점자 목록만 반환한다", () => {
   const players = [makePlayer({ id: "a" }), makePlayer({ id: "b" }), makePlayer({ id: "c" })];
-  const { updatedPlayers, topTargetId, tiedTargetIds } = resolveDayVote(players, {
-    a: "b",
-    c: "a",
-  });
+  const { topTargetId, tiedTargetIds } = tallyDayVote(players, { a: "b", c: "a" });
   assert.equal(topTargetId, null);
   assert.deepEqual(new Set(tiedTargetIds), new Set(["a", "b"]));
-  assert.equal(updatedPlayers.find((p) => p.id === "a")!.hp, 4);
-  assert.equal(updatedPlayers.find((p) => p.id === "b")!.hp, 4);
+});
+
+test("tallyDayVote는 사망자의 표를 세지 않는다", () => {
+  const players = [
+    makePlayer({ id: "a" }),
+    makePlayer({ id: "dead", alive: false, hp: 0 }),
+    makePlayer({ id: "c" }),
+  ];
+  const { topTargetId } = tallyDayVote(players, { dead: "a", c: "a" });
+  assert.equal(topTargetId, "a");
+});
+
+test("찬반 심판: 찬성이 반대보다 많으면 가결되어 데미지 1", () => {
+  const players = [makePlayer({ id: "a" }), makePlayer({ id: "b" }), makePlayer({ id: "t" })];
+  const { updatedPlayers, approve, oppose, passed } = resolveJudgement(players, "t", {
+    a: true,
+    b: true,
+    t: false,
+  });
+  assert.equal(approve, 2);
+  assert.equal(oppose, 1);
+  assert.equal(passed, true);
+  assert.equal(updatedPlayers.find((p) => p.id === "t")!.hp, 3);
+});
+
+test("찬반 심판: 동수면 부결되어 아무도 다치지 않는다", () => {
+  const players = [makePlayer({ id: "a" }), makePlayer({ id: "b" }), makePlayer({ id: "t" })];
+  const { updatedPlayers, damageLog, passed } = resolveJudgement(players, "t", {
+    a: true,
+    b: false,
+  });
+  assert.equal(passed, false);
+  assert.deepEqual(damageLog, []);
+  assert.equal(updatedPlayers.find((p) => p.id === "t")!.hp, 4);
+});
+
+test("찬반 심판: 아무도 투표하지 않으면 부결", () => {
+  const players = [makePlayer({ id: "a" }), makePlayer({ id: "t" })];
+  const { passed, approve, oppose } = resolveJudgement(players, "t", {});
+  assert.equal(passed, false);
+  assert.equal(approve, 0);
+  assert.equal(oppose, 0);
+});
+
+test("찬반 심판: 가결로 HP가 0이 되면 사망 처리된다", () => {
+  const players = [makePlayer({ id: "a" }), makePlayer({ id: "t", hp: 1 })];
+  const { updatedPlayers } = resolveJudgement(players, "t", { a: true });
+  const target = updatedPlayers.find((p) => p.id === "t")!;
+  assert.equal(target.hp, 0);
+  assert.equal(target.alive, false);
+});
+
+test("찬반 심판: 사망자의 표는 세지 않는다", () => {
+  const players = [
+    makePlayer({ id: "dead", alive: false, hp: 0 }),
+    makePlayer({ id: "a" }),
+    makePlayer({ id: "t" }),
+  ];
+  // 사망자 2명이 찬성해도 세지 않으므로, 산 사람 1명의 반대만 남아 부결이어야 한다.
+  const { passed } = resolveJudgement(players, "t", { dead: true, a: false });
+  assert.equal(passed, false);
 });
 
 test("checkWinner: boss death means immediate spy win", () => {

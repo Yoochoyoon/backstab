@@ -35,6 +35,7 @@ const PHASE_LABELS = {
   day_reveal: "☀ 결과 공개",
   day_discussion: "💬 토론",
   day_vote: "🗳 투표",
+  day_judgement: "⚖ 최종 심판",
   game_over: "게임 종료",
 };
 

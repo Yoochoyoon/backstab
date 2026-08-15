@@ -58,6 +58,8 @@ export function createRoom(hostId: string): Room {
     lastVoteResult: null,
     voteAllowedTargetIds: null,
     voteIsRevote: false,
+    judgementTargetId: null,
+    judgementVotes: {},
     winner: null,
     phaseEndsAt: null,
     phaseTimer: null,

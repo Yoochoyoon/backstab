@@ -99,6 +99,21 @@
         <ul class="na-target-grid" id="targetList"></ul>
       </section>
 
+      <!-- 찬반 심판: 지목된 대상자를 크게 띄우고 찬성/반대만 고르게 한다. -->
+      <section class="na-section judgement" id="judgementSection" style="display:none">
+        <div class="judgement__poster">
+          <span class="judgement__label">최종 심판</span>
+          <div class="judgement__name" id="judgementName"></div>
+          <div class="judgement__hp" id="judgementHp"></div>
+        </div>
+        <p class="judgement__question">이 사람을 처단할까요?</p>
+        <div class="judgement__buttons">
+          <button type="button" id="judgeApproveBtn" class="judgement__btn judgement__btn--approve">찬성</button>
+          <button type="button" id="judgeOpposeBtn" class="judgement__btn judgement__btn--oppose">반대</button>
+        </div>
+        <p class="judgement__note" id="judgementNote"></p>
+      </section>
+
       <div class="na-summary" id="summaryPanel">
         <div class="na-summary__row" id="summaryActionRow" style="display:none">
           <span class="na-summary__label">선택 스킬:</span>
