@@ -53,6 +53,8 @@
   /* Landing hero palette (Figma noir-pop) */
   --hero-burgundy-gradient: linear-gradient(135deg, #5D2E2E 0%, #8B4545 50%, #5D2E2E 100%);
   --hero-burgundy-gradient-deep: linear-gradient(135deg, #2A1414 0%, #4A2323 50%, #2A1414 100%);
+  /* 밤 페이즈 전용 — 낮의 버건디(빨강) 대신 밤임을 색으로도 바로 알 수 있게 파랑 계열로 바꾼다. */
+  --hero-night-blue-gradient: linear-gradient(135deg, #1B2A4A 0%, #2E4372 50%, #1B2A4A 100%);
 
 }
 
@@ -102,6 +104,29 @@ button {
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .error { color: #FF6B6B; min-height: 1.2em; font-size: 0.9rem; }
+
+/* 화면이 뭘로 바뀌든(대기실/게임 중/종료) 항상 같은 자리에서 나갈 수 있게
+   고정 위치로 띄운다. 다른 UI를 가리지 않도록 작고 눈에 안 띄게. */
+.leave-game-btn {
+  position: fixed;
+  top: 1.2vh;
+  right: 1.2vh;
+  z-index: 1000;
+  width: auto;
+  min-height: 0;
+  padding: 0.6vh 1.6vh;
+  font-size: min(1.6vh, 3cqw);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  border: 0.15vh solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+}
+
+.leave-game-btn:hover {
+  background: rgba(228, 24, 15, 0.85);
+  border-color: #fff;
+}
 .player-list { list-style: none; padding: 0; margin: 0; }
 .player-list li {
   display: flex;
@@ -799,6 +824,12 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   overflow: visible;
 }
 
+/* 이 화면은 카드 높이가 auto라 진행자 TV 화면(높이 고정)과 달리 아바타가 카드를
+   밀어낼 일이 없다 — 그 화면 전용으로 건 max-height 상한을 여기서는 풀어 정사각형을 지킨다. */
+.na-target-grid .hp-monitor-card__avatar {
+  max-height: none;
+}
+
 /* 카드가 콘텐츠 높이만큼만 차지할 때 body의 flex:1(flex-basis:0%)이 overflow:hidden과
    만나 0높이로 접히는 문제 — 진행상황 화면 모바일 대응에서 확인된 것과 같은 이슈. */
 .na-target-grid .hp-monitor-card__body {
@@ -959,6 +990,13 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 .judgement-tally__chips .voter-chip {
   width: 2.4vh;
   max-width: none;
+}
+
+/* 심판 포스터(호스트/플레이어 둘 다) 자체가 팝아트 연출로 -8deg 기울어져 있어서
+   그 안의 둥근 얼굴 사진도 그대로 따라 찌그러진다. 사진만 반대로 기울여 똑바로 보이게 한다. */
+.judgement-poster .voter-chip,
+.judgement__poster .voter-chip {
+  transform: skewX(8deg);
 }
 
 /* TV 포스터 위에서는 멀리서도 보여야 하니 훨씬 크게, 가운데 정렬로 띄운다. */
@@ -1439,7 +1477,8 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 }
 
 .host-layout[data-phase="night"] .hero-card {
-  filter: brightness(0.5);
+  background: var(--hero-night-blue-gradient);
+  filter: brightness(0.7);
 }
 
 /* 밤 반전이 인스턴트 전환이 아니라 눈에 보이는 "플립"처럼 느껴지게 트랜지션을 준다. */
@@ -1491,6 +1530,13 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
 
 .host-layout[data-phase="night"] .phase-icon {
   background: #fff;
+  color: #000;
+}
+
+/* 밤 반전 규칙이 다른 아이콘과 똑같이 흰 배경으로 덮어써서 현재 단계 강조가
+   묻히던 문제 — 밤에도 노란 원형이 유지되도록 다시 못박는다. */
+.host-layout[data-phase="night"] .phase-icon.is-active {
+  background: #FFE500;
   color: #000;
 }
 
@@ -1778,10 +1824,11 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   height: 52%;
 }
 
-/* 현재 라운드 상태만 노란 테두리 + 노란 아이콘으로 강조한다 — 배경은 다른 아이콘과 같은 검정 그대로. */
+/* 현재 라운드 상태는 노란 원형 배경 + 검정 아이콘으로 확실히 눈에 띄게 강조한다. */
 .phase-icon.is-active {
+  background: #FFE500;
   border-color: #FFE500;
-  color: #FFE500;
+  color: #000;
 }
 
 .phase-icon.is-active svg {
@@ -1927,11 +1974,15 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   white-space: nowrap;
 }
 
-/* 프로필 사진 자리 — 사진을 등록했으면 사진, 아니면 닉네임 첫 글자. */
+/* 프로필 사진 자리 — 사진을 등록했으면 사진, 아니면 닉네임 첫 글자.
+   가로로 넓고 세로가 짧은 화면(TV 등)에서는 정사각형(aspect-ratio 1:1)이 카드 너비를
+   그대로 따라가 카드 전체 높이보다 커질 수 있다 — 그러면 이름·HP가 카드 밖으로 밀려
+   overflow:hidden에 통째로 잘린다. max-height로 상한을 걸어 몸통 영역을 항상 확보한다. */
 .hp-monitor-card__avatar {
   position: relative;
   flex-shrink: 0;
   aspect-ratio: 1 / 1;
+  max-height: 50%;
   display: flex;
   align-items: center;
   justify-content: center;

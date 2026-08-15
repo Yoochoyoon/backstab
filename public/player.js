@@ -116,6 +116,7 @@ socket.on("server:hello", ({ startedAt }) => {
     if (res.ok) {
       myRoomCode = roomCode;
       joinSection.style.display = "none";
+      leaveGameBtn.style.display = "block";
       errorLabel.textContent = "";
       // 어느 화면(대기실 vs 게임)으로 갈지는 곧이어 오는 state:full_sync가 정한다 —
       // 여기서 게임 화면을 먼저 띄우면 아직 로비인데 빈 게임 화면이 번쩍인다.
@@ -129,6 +130,7 @@ socket.on("server:hello", ({ startedAt }) => {
       clearSession();
       errorLabel.textContent = "서버가 재시작되어 이전 게임이 종료되었습니다. 새로 입장해주세요.";
       joinSection.style.display = "flex";
+      leaveGameBtn.style.display = "none";
       document.getElementById("postJoinScreen").style.display = "none";
       waitingSection.style.display = "none";
     }
@@ -207,6 +209,19 @@ let selectedShieldMode = "absorb";
 
 const joinSection = document.getElementById("joinSection");
 const waitingSection = document.getElementById("waitingSection");
+
+// 어느 화면에 있든 눌러서 나갈 수 있는 버튼. 방에 들어간 적 없으면(입장 화면)
+// 확인 없이 바로 새로고침만 하고, 방에 있었다면 한 번 확인한다.
+const leaveGameBtn = document.getElementById("leaveGameBtn");
+// 입장 화면에서는 아직 나갈 방이 없다 — 그 화면의 큰 타이틀과 겹치기도 해서
+// 방에 들어간 뒤(대기실/게임 중)에만 보이게 한다.
+leaveGameBtn.style.display = "none";
+leaveGameBtn.addEventListener("click", () => {
+  if (myRoomCode && !confirm("게임에서 나가시겠습니까?")) return;
+  clearSession();
+  socket.disconnect();
+  location.reload();
+});
 const bossBanner = document.getElementById("bossBanner");
 const roleCard = document.getElementById("roleCard");
 const spyRevealSection = document.getElementById("spyRevealSection");
@@ -236,6 +251,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
     if (res.sessionId) saveSession(res.sessionId, code);
     errorLabel.textContent = "";
     joinSection.style.display = "none";
+    leaveGameBtn.style.display = "block";
     waitingSection.style.display = "flex";
   });
 });
@@ -254,6 +270,7 @@ document.getElementById("createRoomBtn").addEventListener("click", () => {
     if (res.sessionId) saveSession(res.sessionId, res.code);
     errorLabel.textContent = "";
     joinSection.style.display = "none";
+    leaveGameBtn.style.display = "block";
     waitingSection.style.display = "flex";
   });
 });
@@ -390,6 +407,9 @@ socket.on("player:night_options", (options) => {
 // 갱신 로직을 타야 해서 함수로 뽑아뒀다 — 재접속 시 이 호출이 빠지면 화면이
 // 대기 화면에 멈춘 채 아무것도 안 보이는 버그가 생긴다.
 function applyPhase(phase, round, phaseEndsAt) {
+  // 시간 연장 등으로 같은 페이즈가 재전송될 때도 전환 슬라이드가 다시 뜨지 않도록,
+  // 실제로 페이즈가 바뀐 경우에만 아래에서 슬라이드를 띄운다.
+  const phaseActuallyChanged = phase !== currentPhase;
   currentPhase = phase;
   currentRound = round;
   selectedTargetId = null;
@@ -446,11 +466,11 @@ function applyPhase(phase, round, phaseEndsAt) {
 
   // 밤 결과는 state:night_result 슬라이드가 따로 띄우므로 여기서 중복해서 안내하지 않는다.
   // 호스트 화면 없이도 지금 무슨 상황인지 알 수 있게 참가자 화면에도 똑같이 띄운다.
-  if (phase === "night") {
+  if (phaseActuallyChanged && phase === "night") {
     showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
-  } else if (phase === "day_discussion") {
+  } else if (phaseActuallyChanged && phase === "day_discussion") {
     showSlide("💬", "토론 시작", "누가 수상한지 이야기해보세요");
-  } else if (phase === "day_vote") {
+  } else if (phaseActuallyChanged && phase === "day_vote") {
     showSlide("🗳️", "투표 시작", "의심되는 사람을 지목하세요");
   }
 
@@ -597,6 +617,7 @@ socket.on("state:full_sync", (data) => {
     currentPhase = "lobby";
     currentRound = data.round;
     joinSection.style.display = "none";
+    leaveGameBtn.style.display = "block";
     document.getElementById("postJoinScreen").style.display = "none";
     waitingSection.style.display = "flex";
     renderWaitingList(players);

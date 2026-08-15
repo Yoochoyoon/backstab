@@ -4,6 +4,8 @@ let currentRoomCode = "";
 let submittedIds = [];
 // 실시간 투표 현황. kind는 "vote"(지목) | "judgement"(찬반) | null.
 let voteProgress = { kind: null, votes: [] };
+// 시간 연장 시 같은 페이즈가 재전송돼도 전환 슬라이드가 다시 뜨지 않도록 추적한다.
+let lastPhase = null;
 
 const PHASE_ICON_MAP = {
   night: "night",
@@ -44,6 +46,16 @@ const lobbySection = document.getElementById("lobbySection");
 const gameControlSection = document.getElementById("gameControlSection");
 const errorLabel = document.getElementById("errorLabel");
 const showSlide = createSlideQueue("phaseSlide");
+
+// 어느 화면에 있든 눌러서 나갈 수 있는 버튼. 방을 만든 적 없으면(랜딩 화면)
+// 확인 없이 바로 새로고침만 하고, 방이 있었다면 한 번 확인한다 — 진행자가 나가면
+// 방 전체가 진행자 없이 남기 때문에 실수로 누르는 걸 막는 게 더 중요하다.
+document.getElementById("leaveGameBtn").addEventListener("click", () => {
+  if (currentRoomCode && !confirm("게임에서 나가시겠습니까? 진행자가 나가면 방을 다시 열 수 없습니다.")) return;
+  clearHostSession();
+  socket.disconnect();
+  location.reload();
+});
 
 document.getElementById("createRoomBtn").addEventListener("click", () => {
   socket.emit("host:create_room", {}, (res) => {
@@ -239,6 +251,8 @@ socket.on("public:boss_revealed", ({ nickname }) => {
 });
 
 socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
+  const phaseActuallyChanged = phase !== lastPhase;
+  lastPhase = phase;
   const gameShell = document.querySelector(".host-layout");
   if (gameShell) {
     gameShell.setAttribute("data-phase", phase);
@@ -279,11 +293,11 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   }
 
   // 밤 결과는 state:night_result 슬라이드가 따로 띄우므로 여기서 중복해서 안내하지 않는다.
-  if (phase === "night") {
+  if (phaseActuallyChanged && phase === "night") {
     showSlide("🌙", "밤이 되었습니다", `${round}라운드 - 각자 행동을 선택하세요`);
-  } else if (phase === "day_discussion") {
+  } else if (phaseActuallyChanged && phase === "day_discussion") {
     showSlide("💬", "토론 시작", "누가 수상한지 이야기해보세요");
-  } else if (phase === "day_vote") {
+  } else if (phaseActuallyChanged && phase === "day_vote") {
     showSlide("🗳️", "투표 시작", "의심되는 사람을 지목하세요");
   }
   const advanceBtn = document.getElementById("advanceBtn");
