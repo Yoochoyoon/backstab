@@ -374,7 +374,8 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   color: #FFE500;
 }
 
-.join-error {
+.join-error,
+.create-error {
   position: relative;
   z-index: 4;
   color: #FF6B6B;

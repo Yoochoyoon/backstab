@@ -10,6 +10,32 @@ const PHASE_ICON_MAP = {
   day_vote: "vote",
 };
 
+const HOST_SESSION_KEYS = ["hostSessionId", "hostRoomCode", "hostSessionSavedAt"];
+
+// 진행자 세션도 플레이어와 같은 이유로 탭 전용 sessionStorage를 우선 저장소로 쓴다
+// (localStorage는 같은 브라우저의 모든 탭이 공유해서 서로 덮어쓴다).
+function saveHostSession(sessionId, roomCode) {
+  const values = [sessionId, roomCode, String(Date.now())];
+  for (const store of [sessionStorage, localStorage]) {
+    HOST_SESSION_KEYS.forEach((key, i) => store.setItem(key, values[i]));
+  }
+}
+
+function readHostSession() {
+  const store = sessionStorage.getItem("hostSessionId") ? sessionStorage : localStorage;
+  return {
+    sessionId: store.getItem("hostSessionId"),
+    roomCode: store.getItem("hostRoomCode"),
+    savedAt: Number(store.getItem("hostSessionSavedAt") || 0),
+  };
+}
+
+function clearHostSession() {
+  for (const store of [sessionStorage, localStorage]) {
+    HOST_SESSION_KEYS.forEach((key) => store.removeItem(key));
+  }
+}
+
 const createSection = document.getElementById("createSection");
 const lobbySection = document.getElementById("lobbySection");
 const gameControlSection = document.getElementById("gameControlSection");
@@ -24,18 +50,18 @@ document.getElementById("createRoomBtn").addEventListener("click", () => {
     lobbySection.style.display = "flex";
     // 플레이어와 마찬가지로 세션을 저장해둔다 — 진행자 소켓이 끊겼다 재연결돼도
     // (네트워크 끊김, 화면 꺼짐 등) 진행자 권한을 자동으로 되찾을 수 있게 한다.
-    if (res.sessionId) {
-      localStorage.setItem("hostSessionId", res.sessionId);
-      localStorage.setItem("hostRoomCode", res.code);
-    }
+    if (res.sessionId) saveHostSession(res.sessionId, res.code);
   });
 });
 
-// 페이지 로드 시(재연결 포함) 저장된 진행자 세션이 있으면 자동으로 권한을 복구한다.
-window.addEventListener("load", () => {
-  const sessionId = localStorage.getItem("hostSessionId");
-  const roomCode = localStorage.getItem("hostRoomCode");
+// server:hello를 받은 뒤에 진행자 권한 복구를 시도한다. 서버 부팅 시각을 먼저 알아야
+// 실패 이유를 정확히 안내할 수 있고, 소켓이 조용히 끊겼다 다시 붙을 때도 이 이벤트가
+// 다시 오므로 그때마다 권한을 되찾는다.
+socket.on("server:hello", ({ startedAt }) => {
+  const { sessionId, roomCode, savedAt } = readHostSession();
   if (!sessionId || !roomCode) return;
+
+  const serverRestarted = startedAt > savedAt;
 
   socket.emit("host:reconnect", { sessionId, roomCode }, (res) => {
     if (res.ok) {
@@ -43,9 +69,17 @@ window.addEventListener("load", () => {
       document.getElementById("roomCode").textContent = roomCode;
       createSection.style.display = "none";
       lobbySection.style.display = "flex"; // 아직 로비 단계면 이대로, 게임 중이면 곧이어 오는 state:phase_changed가 gameControlSection으로 바꿔준다.
-    } else {
-      localStorage.removeItem("hostSessionId");
-      localStorage.removeItem("hostRoomCode");
+      errorLabel.textContent = "";
+      return;
+    }
+    // 서버가 우리 세션보다 나중에 떴을 때만 세션을 버린다 — 일시적 실패로 지우면
+    // 돌아갈 수 있었던 방까지 잃는다.
+    if (serverRestarted) {
+      clearHostSession();
+      createSection.style.display = "flex";
+      lobbySection.style.display = "none";
+      document.getElementById("createErrorLabel").textContent =
+        "서버가 재시작되어 이전 방이 사라졌습니다. 새 방을 만들어주세요.";
     }
   });
 });

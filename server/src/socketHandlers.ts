@@ -2,6 +2,7 @@ import type { Server, Socket } from "socket.io";
 import { assignRoles } from "./game/roleAssignment.js";
 import { checkWinner, resolveDayVote, resolveNightAttacks } from "./game/resolveRound.js";
 import {
+  LOBBY_DISCONNECT_GRACE_MS,
   NightAction,
   NightActionType,
   PHASE_DURATIONS_MS,
@@ -13,7 +14,15 @@ import {
   MIN_PLAYERS,
   defaultAbilityState,
 } from "./game/types.js";
-import { createRoom, deleteRoom, getRoom, createSession, deleteSessionsByRoom, getSession } from "./rooms.js";
+import {
+  createRoom,
+  createSession,
+  deleteRoom,
+  deleteSessionsByRoom,
+  getRoom,
+  getSession,
+  touchRoom,
+} from "./rooms.js";
 
 interface SocketData {
   roomCode?: string;
@@ -57,6 +66,8 @@ function revealedPlayers(room: Room) {
 }
 
 function emitState(io: Server, room: Room) {
+  // 방에 무슨 일이든 생기면 여기를 거치므로, 청소 기준이 되는 활동 시각도 여기서 갱신한다.
+  touchRoom(room);
   // player.js re-derives its own HP from the players array on phase_changed,
   // so state:players must arrive first or it reads the stale pre-round-start snapshot.
   // 게임이 끝났으면 역할을 더 가릴 이유가 없다 — 종료 화면·로스터가 전부
@@ -285,9 +296,17 @@ function addPlayer(room: Room, id: string, nickname: string) {
   });
 }
 
+// 이 프로세스가 언제 떴는지. 방·세션이 전부 메모리에만 있어서 서버가 재시작되면
+// 진행 중이던 게임이 전부 사라지는데, 클라이언트가 저장해둔 세션이 이 시각보다
+// 오래됐다면 "서버가 재시작돼서 사라진 것"이라고 정확히 안내할 수 있다.
+const SERVER_STARTED_AT = Date.now();
+
 export function registerSocketHandlers(io: Server) {
   io.on("connection", (socket: Socket) => {
     const data = socket.data as SocketData;
+
+    // 재접속을 시도하기 전에 클라이언트가 먼저 받아야 하는 정보라 연결 직후 보낸다.
+    socket.emit("server:hello", { startedAt: SERVER_STARTED_AT });
 
     socket.on(
       "host:create_room",
@@ -427,9 +446,6 @@ export function registerSocketHandlers(io: Server) {
 
         const room = getRoom(session.roomCode);
         if (!room) return callback({ ok: false, error: "방을 찾을 수 없습니다." });
-        if (room.phase === "lobby") {
-          return callback({ ok: false, error: "게임이 아직 시작되지 않았습니다." });
-        }
 
         const player = room.players.find((p) => p.id === session.playerId);
         if (!player) return callback({ ok: false, error: "플레이어를 찾을 수 없습니다." });
@@ -468,6 +484,8 @@ export function registerSocketHandlers(io: Server) {
           phaseEndsAt: room.phaseEndsAt,
           // 재접속하면 그동안 오간 대화가 통째로 사라지므로 같이 복원해준다.
           chatLog: room.chatLog,
+          // 로비에서 재접속한 방장이 "시작" 버튼을 되찾을 수 있게 같이 보낸다.
+          leaderId: room.hostId,
         });
       },
     );
@@ -608,19 +626,31 @@ export function registerSocketHandlers(io: Server) {
       const room = getRoom(roomCode);
       if (!room) return;
 
-      // 게임 진행 중이면 플레이어 유지 (재연결 대기)
-      // 로비 상태면 플레이어 제거
-      if (room.phase === "lobby") {
-        room.players = room.players.filter((p) => p.id !== socket.id);
-        emitState(io, room);
+      // 게임 진행 중이면 플레이어를 그대로 두고 sessionId로 복귀하길 기다린다.
+      if (room.phase !== "lobby") return;
 
-        // 로비에서 모든 플레이어가 나가면 방 삭제
-        if (room.players.length === 0) {
-          deleteSessionsByRoom(room.code);
-          deleteRoom(room.code);
+      // 로비에서도 곧바로 빼지 않고 잠시 기다린다. 즉시 제거하면 방장이 폰 화면을
+      // 한 번 껐다 켜는 것만으로 (혼자였다면) 방이 통째로 사라져서, 이미 나눠준
+      // 방 코드가 무효가 돼버린다.
+      const leftSocketId = socket.id;
+      setTimeout(() => {
+        const current = getRoom(roomCode);
+        if (!current || current.phase !== "lobby") return;
+        // 그 사이 재접속했다면 player.id가 새 소켓으로 바뀌어 있으므로 건드리지 않는다.
+        const stillGone = current.players.some((p) => p.id === leftSocketId);
+        if (!stillGone) return;
+
+        current.players = current.players.filter((p) => p.id !== leftSocketId);
+        if (current.players.length === 0) {
+          deleteSessionsByRoom(current.code);
+          deleteRoom(current.code);
+          return;
         }
-      }
-      // 게임 진행 중: 플레이어 유지 (sessionId로 복귀 가능)
+        emitState(io, current);
+      }, LOBBY_DISCONNECT_GRACE_MS).unref();
+
+      // 대기실 인원 표시는 즉시 갱신하지 않는다 — 잠깐 끊긴 사람이 목록에서
+      // 사라졌다 나타나는 깜빡임보다, 유예 후 한 번만 반영하는 쪽이 덜 혼란스럽다.
     });
   });
 }

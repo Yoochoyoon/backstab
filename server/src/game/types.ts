@@ -78,7 +78,20 @@ export interface Room {
   winner: Role | null;
   phaseEndsAt: number | null;
   phaseTimer: NodeJS.Timeout | null;
+  // 마지막으로 이 방에 무슨 일이 있었던 시각. 끝났거나 버려진 방을 청소하는 기준이 된다
+  // (방이 메모리에만 있어서, 안 치우면 프로세스가 죽을 때까지 계속 쌓인다).
+  lastActivityAt: number;
 }
+
+// 청소 기준. 게임이 끝난 방은 결과 화면을 한동안 볼 수 있게 두고,
+// 진행 중인데 아무도 안 돌아오는 방은 훨씬 길게 기다렸다가 치운다.
+export const FINISHED_ROOM_TTL_MS = 30 * 60 * 1000;
+export const ABANDONED_ROOM_TTL_MS = 6 * 60 * 60 * 1000;
+
+// 로비에서 연결이 끊긴 사람을 곧바로 방에서 빼지 않고 기다려주는 시간.
+// 예전엔 즉시 제거해서, 방을 만든 사람이 폰 화면을 한 번 껐다 켜는 것만으로
+// (혼자였다면) 방 자체가 사라지고 친구들에게 준 방 코드가 무효가 됐다.
+export const LOBBY_DISCONNECT_GRACE_MS = 60 * 1000;
 
 export const MAX_HP: Record<Role, number> = {
   boss: 5,

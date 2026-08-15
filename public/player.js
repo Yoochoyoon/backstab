@@ -1,26 +1,67 @@
 const socket = io();
 
-// 페이지 로드 시 자동 재연결 시도
-window.addEventListener("load", () => {
-  const sessionId = localStorage.getItem("sessionId");
-  const roomCode = localStorage.getItem("roomCode");
+const SESSION_KEYS = ["sessionId", "roomCode", "sessionSavedAt"];
 
-  if (sessionId && roomCode) {
-    socket.emit("player:reconnect", { sessionId, roomCode }, (res) => {
-      if (res.ok) {
-        console.log("재연결 성공");
-        myRoomCode = roomCode;
-        joinSection.style.display = "none";
-        document.getElementById("postJoinScreen").style.display = "flex";
-        // 나머지 화면 상태는 state:full_sync 이벤트로 받음
-      } else {
-        console.log("재연결 실패:", res.error);
-        // 세션 정보 삭제 (새로 입장해야 함)
-        localStorage.removeItem("sessionId");
-        localStorage.removeItem("roomCode");
-      }
-    });
+// 세션은 탭 전용 sessionStorage를 우선으로 저장하고, localStorage에도 같이 남긴다.
+// localStorage는 같은 브라우저의 모든 탭이 공유해서, 한 브라우저로 여러 명이
+// (또는 봇 여러 개가) 붙으면 나중에 들어온 탭이 앞 탭의 세션을 덮어쓰고
+// 서로 남의 플레이어로 재접속해버린다. 탭 전용 저장소를 먼저 보면 그 문제가 없고,
+// 브라우저를 완전히 닫았다 다시 연 경우엔 localStorage 쪽이 받아준다.
+// savedAt은 서버 부팅 시각과 비교해 "재시작 때문에 사라진 방"을 구분하는 데 쓴다.
+function saveSession(sessionId, roomCode) {
+  const values = [sessionId, roomCode, String(Date.now())];
+  for (const store of [sessionStorage, localStorage]) {
+    SESSION_KEYS.forEach((key, i) => store.setItem(key, values[i]));
   }
+}
+
+function readSession() {
+  const store = sessionStorage.getItem("sessionId") ? sessionStorage : localStorage;
+  return {
+    sessionId: store.getItem("sessionId"),
+    roomCode: store.getItem("roomCode"),
+    savedAt: Number(store.getItem("sessionSavedAt") || 0),
+  };
+}
+
+function clearSession() {
+  for (const store of [sessionStorage, localStorage]) {
+    SESSION_KEYS.forEach((key) => store.removeItem(key));
+  }
+}
+
+// 재접속은 server:hello를 받은 뒤에 시도한다. 서버 부팅 시각을 먼저 알아야
+// 실패했을 때 "서버 재시작 때문"인지 아닌지 제대로 안내할 수 있다.
+// 또 이 이벤트는 소켓이 조용히 끊겼다 다시 붙을 때도 다시 오므로, 그때마다
+// 재접속을 걸어 서버 쪽 player.id를 새 소켓으로 갱신한다 — 안 그러면 화면은
+// 멀쩡한데 제출이 전부 무시되는 유령 상태가 된다.
+socket.on("server:hello", ({ startedAt }) => {
+  const { sessionId, roomCode, savedAt } = readSession();
+  if (!sessionId || !roomCode) return;
+
+  const serverRestarted = startedAt > savedAt;
+
+  socket.emit("player:reconnect", { sessionId, roomCode }, (res) => {
+    if (res.ok) {
+      myRoomCode = roomCode;
+      joinSection.style.display = "none";
+      errorLabel.textContent = "";
+      // 어느 화면(대기실 vs 게임)으로 갈지는 곧이어 오는 state:full_sync가 정한다 —
+      // 여기서 게임 화면을 먼저 띄우면 아직 로비인데 빈 게임 화면이 번쩍인다.
+      return;
+    }
+
+    // 서버가 우리 세션보다 나중에 떴다면 방이 사라진 이유가 명확하다.
+    // 그 경우에만 세션을 지운다 — 일시적인 실패로 지워버리면 돌아갈 수 있었던
+    // 게임까지 같이 잃는다.
+    if (serverRestarted) {
+      clearSession();
+      errorLabel.textContent = "서버가 재시작되어 이전 게임이 종료되었습니다. 새로 입장해주세요.";
+      joinSection.style.display = "flex";
+      document.getElementById("postJoinScreen").style.display = "none";
+      waitingSection.style.display = "none";
+    }
+  });
 });
 
 // 07룰복잡도온보딩.md: 1~2라운드까지만 짧은 첫판 힌트를 보여주고, 3라운드부터는 자동으로 사라진다.
@@ -110,8 +151,7 @@ socket.on("connect", () => {
 document.getElementById("joinBtn").addEventListener("click", () => {
   // 새 방에 직접 입장하는 순간 이전 세션은 더 이상 유효하지 않다 — 지워두지 않으면
   // 다음 새로고침 때 이 방이 아니라 이전(어쩌면 중단된) 방으로 자동 재접속돼버린다.
-  localStorage.removeItem("sessionId");
-  localStorage.removeItem("roomCode");
+  clearSession();
 
   const code = document.getElementById("codeInput").value.trim().toUpperCase();
   const nickname = document.getElementById("nicknameInput").value.trim();
@@ -121,11 +161,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
       return;
     }
     myRoomCode = code;
-    // sessionId 저장
-    if (res.sessionId) {
-      localStorage.setItem("sessionId", res.sessionId);
-      localStorage.setItem("roomCode", code);
-    }
+    if (res.sessionId) saveSession(res.sessionId, code);
     errorLabel.textContent = "";
     joinSection.style.display = "none";
     waitingSection.style.display = "flex";
@@ -134,8 +170,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
 
 // 폰만으로 방을 만든다 — 방 코드 입력 없이 이름만 받고, 만든 사람이 방장이 된다.
 document.getElementById("createRoomBtn").addEventListener("click", () => {
-  localStorage.removeItem("sessionId");
-  localStorage.removeItem("roomCode");
+  clearSession();
 
   const nickname = document.getElementById("nicknameInput").value.trim();
   socket.emit("player:create_room", { nickname }, (res) => {
@@ -144,10 +179,7 @@ document.getElementById("createRoomBtn").addEventListener("click", () => {
       return;
     }
     myRoomCode = res.code;
-    if (res.sessionId) {
-      localStorage.setItem("sessionId", res.sessionId);
-      localStorage.setItem("roomCode", res.code);
-    }
+    if (res.sessionId) saveSession(res.sessionId, res.code);
     errorLabel.textContent = "";
     joinSection.style.display = "none";
     waitingSection.style.display = "flex";
@@ -454,6 +486,20 @@ socket.on("state:full_sync", (data) => {
   // 재접속한 플레이어의 화면을 현재 게임 상태로 복원한다.
   players = data.players;
   myself = players.find((p) => p.id === myId) || myself;
+  if (data.leaderId !== undefined) leaderId = data.leaderId;
+
+  // 아직 시작 전이면 게임 화면이 아니라 대기실로 되돌아가야 한다
+  // (방장이면 방 코드와 시작 버튼도 같이 복구된다).
+  if (data.phase === "lobby") {
+    currentPhase = "lobby";
+    currentRound = data.round;
+    joinSection.style.display = "none";
+    document.getElementById("postJoinScreen").style.display = "none";
+    waitingSection.style.display = "flex";
+    renderWaitingList(players);
+    renderLeaderControls();
+    return;
+  }
 
   // 본인 역할은 players 배열이 아니라 서버가 따로 보내주는 myRole/myHp로 받는다
   // (players는 publicPlayers()라 보스가 아닌 이상 role이 비공개로 빠져 있다).
@@ -477,6 +523,9 @@ socket.on("state:full_sync", (data) => {
   }
 
   waitingSection.style.display = "none";
+  // 게임 중 재접속에서는 player:role_assigned가 다시 오지 않으므로
+  // 게임 화면을 여기서 띄워야 한다.
+  document.getElementById("postJoinScreen").style.display = "flex";
 
   submittedIds = data.submittedIds || [];
   // 서버는 진작 이 값을 보내주고 있었는데 클라이언트가 읽지 않아서, 재투표 도중
