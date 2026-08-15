@@ -861,6 +861,26 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   text-align: center;
 }
 
+/* 심판 중에는 화면 전체를 반투명 검정으로 덮어 포스터만 도드라지게 한다.
+   포스터가 HP 카드 위에 그냥 얹히면 뭘 가린 건지 애매해 보이는데, 뒤를 한 번
+   눌러주면 "지금은 이 사람 차례"라는 게 분명해진다.
+   본문(.tv-upper/.control-lower)이 z-index 4, 포스터가 6이라 그 사이인 5에 깔린다. */
+.host-layout[data-phase="day_judgement"]::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0.72);
+  /* 진행자는 이 위의 버튼을 계속 눌러야 하므로 클릭을 막지 않는다. */
+  pointer-events: none;
+}
+
+/* 어둡게 덮는 건 다같이 보는 무대(위쪽)까지다. 아래 진행자 조작 바까지 흐려지면
+   "시간 연장/다음 단계로"가 비활성처럼 보여서, 이건 덮개 위로 올려둔다. */
+.host-layout[data-phase="day_judgement"] > .control-lower {
+  z-index: 6;
+}
+
 /* 찬반 심판(진행자/TV 화면) — 방 전체가 같이 보는 큰 수배 포스터. */
 .judgement-poster {
   position: absolute;

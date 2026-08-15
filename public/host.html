@@ -77,13 +77,6 @@
         <div class="hp-monitor__grid" id="playerGrid"></div>
       </div>
 
-      <!-- 찬반 심판 중에는 지목된 사람을 화면 가운데에 크게 띄운다(수배 포스터 연출). -->
-      <div class="judgement-poster" id="judgementPoster" style="display: none">
-        <span class="judgement-poster__label">최종 심판</span>
-        <div class="judgement-poster__name" id="judgementPosterName"></div>
-        <div class="judgement-poster__sub" id="judgementPosterSub">처단할지 찬반 투표 중</div>
-      </div>
-
       <div class="boss-sticker" id="bossBanner" style="display: none">
         <span class="boss-sticker__submit-badge">✓ 제출완료</span>
         <div class="boss-sticker__avatar" id="bossAvatar"></div>
@@ -94,6 +87,15 @@
           <div class="boss-sticker__pips" id="bossHpPips"></div>
         </div>
       </div>
+    </div>
+
+    <!-- 찬반 심판 중 지목된 사람을 화면 가운데에 크게 띄운다(수배 포스터 연출).
+         .tv-upper가 z-index를 가진 별도 쌓임 맥락이라 그 안에 두면 어둡게 덮는
+         배경(.host-layout::after) 위로 올라올 수 없어서, 여기 바깥에 형제로 둔다. -->
+    <div class="judgement-poster" id="judgementPoster" style="display: none">
+      <span class="judgement-poster__label">최종 심판</span>
+      <div class="judgement-poster__name" id="judgementPosterName"></div>
+      <div class="judgement-poster__sub" id="judgementPosterSub">처단할지 찬반 투표 중</div>
     </div>
 
     <div class="control-lower">
