@@ -1899,7 +1899,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   color: #000;
   font-family: 'Noto Sans KR', sans-serif;
   font-weight: 700;
-  font-size: min(1.6cqw, 1.8vh);
+  font-size: min(2.6cqw, 2.8vh);
   letter-spacing: 0.1em;
   margin-bottom: 0.4vh;
 }
@@ -1912,6 +1912,7 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   font-family: 'Rubik Mono One', sans-serif;
   font-size: min(3.2cqw, 3.6vh);
   letter-spacing: 0.05em;
+  white-space: nowrap;
   padding: 0.2vh 1vh;
   border-radius: 0.6vh;
   margin-top: 0.4vh;
@@ -1933,16 +1934,36 @@ button.secondary { border-color: rgba(255, 255, 255, 0.4); }
   letter-spacing: 0.05em;
 }
 
-/* 최소~최대 인원(6~10명) 어느 쪽이든 좌우 빈 공간 없이 꽉 차도록
-   플레이어 수만큼 균등한 열로 나눈다 — renderGrid()가 --player-count로 설정. */
+/* 카드를 두 줄로 나눈다. 한 줄로 늘어놓으면 카드가 세로로 길어져 이름·HP 아래
+   흰 여백만 잔뜩 남았다 — 절반씩 두 줄로 쌓으면 카드가 납작해져 여백이 사라진다.
+   열 수는 renderGrid()가 --player-count-half(= ceil(인원/2))로 설정한다. */
 .hp-monitor__grid {
   flex: 1;
   min-width: 0;
   min-height: 0;
   display: grid;
-  grid-template-columns: repeat(var(--player-count, 6), 1fr);
-  grid-template-rows: 1fr;
+  /* 칸은 폭을 균등하게 나눠 카드가 화면 전체에 고르게 퍼지게 한다
+     (가운데로 몰면 양옆이 크게 비어 보인다). */
+  grid-template-columns: repeat(var(--player-count-half, 3), 1fr);
+  grid-template-rows: repeat(2, 1fr);
   gap: 1cqw;
+}
+
+/* 두 줄로 쌓으면 칸이 가로로 너무 넓어져 사진이 납작하게 눌린다. 카드 폭을 높이에서
+   끌어내 적당한 세로 비율로 고정하고, 칸 안에서는 가운데 정렬해 남는 폭을 카드 사이
+   여백으로 돌린다. 7/10은 5:4 사진 + 이름·HP·조각이 잘리지 않고 들어가는 비율. */
+.hp-monitor__grid .hp-monitor-card {
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 7 / 10;
+  justify-self: center;
+}
+
+/* 사진은 5:4(가로가 조금 더 긴 비율)로 고정한다. */
+.hp-monitor__grid .hp-monitor-card__avatar {
+  width: 100%;
+  aspect-ratio: 5 / 4;
+  max-height: none;
 }
 
 .hp-monitor-card {
