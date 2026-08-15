@@ -26,10 +26,11 @@ npm run dev
 
 ### 라이브 배포
 
-https://backstab.onrender.com
-- 진행자: `/host`
-- 플레이어: `/player`
-- TV: `/tv`
+**호스트 (진행자/TV 통합)**: https://backstab-tu0e.onrender.com/host
+
+**플레이어**: https://backstab-tu0e.onrender.com/player
+
+**공용 TV** (레거시): https://backstab-tu0e.onrender.com/tv
 
 ## 🧪 테스트
 
