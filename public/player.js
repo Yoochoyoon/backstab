@@ -475,6 +475,10 @@ function applyPhase(phase, round, phaseEndsAt) {
     document.getElementById("hpBarFill").style.width = `${Math.max(0, (myself.hp / myMaxHp) * 100)}%`;
   }
 
+  const instructionLabel = document.getElementById("instructionLabel");
+  const submitBtn = document.getElementById("submitBtn");
+  const summaryPanel = document.getElementById("summaryPanel");
+
   if (phase === "game_over") {
     // 게임 화면은 그대로 두고 조작만 걷어낸다 — 이 시점엔 서버가 전원 역할을 공개하므로
     // 참가자 목록이 그대로 "누가 무슨 역할이었는지" 최종 결과표가 된다.
@@ -512,10 +516,6 @@ function applyPhase(phase, round, phaseEndsAt) {
   } else if (phaseActuallyChanged && phase === "day_vote") {
     showSlide("🗳️", "투표 시작", "의심되는 사람을 지목하세요");
   }
-
-  const instructionLabel = document.getElementById("instructionLabel");
-  const submitBtn = document.getElementById("submitBtn");
-  const summaryPanel = document.getElementById("summaryPanel");
 
   if (phase === "night" && round === 1) {
     instructionLabel.textContent =
