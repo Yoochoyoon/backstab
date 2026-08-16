@@ -110,6 +110,18 @@ const WINNER_LABELS = {
   traitor: "배신자 승리",
 };
 
+const WINNER_ICONS = {
+  boss: "👑",
+  spy: "🗡️",
+  traitor: "🎭",
+};
+
+const WINNER_SUBS = {
+  boss: "보스가 살아남아 스파이와 배신자를 모두 제거했습니다",
+  spy: "보스를 암살하는 데 성공했습니다",
+  traitor: "보스와 단 둘만 남았습니다",
+};
+
 function formatTimer(ms) {
   if (ms == null) return "--:--";
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
@@ -172,6 +184,21 @@ function createSlideQueue(overlayId) {
         ${sub ? `<div class="phase-slide__sub">${sub}</div>` : ""}
       </div>`;
     overlay.style.display = "flex";
+
+    // duration이 0이면 "계속 띄워두는" 슬라이드(승리 발표). 자동으로 사라지지 않고
+    // 화면을 누르면 닫힌다 — 누르지 않으면 계속 남아 있어야 하지만, 뒤에 있는
+    // 나가기 버튼을 영영 가리면 안 되므로 닫을 방법은 남겨둔다.
+    if (!duration) {
+      overlay.classList.add("is-sticky");
+      overlay.onclick = () => {
+        overlay.onclick = null;
+        overlay.classList.remove("is-sticky");
+        overlay.classList.add("is-leaving");
+        setTimeout(renderNext, 260);
+      };
+      return;
+    }
+
     setTimeout(() => {
       overlay.classList.add("is-leaving");
       setTimeout(renderNext, 260);

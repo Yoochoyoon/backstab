@@ -703,6 +703,8 @@ export function registerSocketHandlers(io: Server) {
         if (!room || room.phase !== "night" || room.round === 1) return;
         const player = room.players.find((p) => p.id === socket.id);
         if (!player || !player.alive) return;
+        // 한 번 낸 행동은 확정이다(아래 submit_vote의 설명 참고).
+        if (room.nightActions[socket.id] !== undefined) return;
         const action: NightAction = { actionType: payload.actionType };
         if (payload.targetId) action.targetId = payload.targetId;
         if (payload.shieldMode) action.shieldMode = payload.shieldMode;
@@ -732,6 +734,15 @@ export function registerSocketHandlers(io: Server) {
       const player = room.players.find((p) => p.id === socket.id);
       if (!player || !player.alive) return;
       if (room.voteAllowedTargetIds && !room.voteAllowedTargetIds.includes(payload.targetId)) return;
+      /**
+       * 한 번 낸 표는 확정이다 — 재제출은 무시한다.
+       *
+       * 예전엔 그냥 덮어써서, 재접속하면 화면 잠금(markSubmitted)이 풀린 상태로 돌아와
+       * 같은 사람이 표를 바꿀 수 있었다. 다른 사람들에겐 이미 "제출완료" 배지가 떠 있고
+       * 스파이 동료에겐 "(확정)"으로 알려준 뒤라, 뒤에서 조용히 바뀌면 그 표시가 거짓이 된다.
+       * 재투표(동점)는 startVotePhase가 dayVotes를 비우고 시작하므로 이 잠금에 걸리지 않는다.
+       */
+      if (room.dayVotes[socket.id] !== undefined) return;
       room.dayVotes[socket.id] = payload.targetId;
       emitSubmissionProgress(io, room);
     });
@@ -742,6 +753,8 @@ export function registerSocketHandlers(io: Server) {
       const player = room.players.find((p) => p.id === socket.id);
       // 대상자 본인도 투표할 수 있다(자기를 살리려 반대표를 던지는 게 자연스럽다).
       if (!player || !player.alive) return;
+      // 찬반도 한 번 내면 확정(위 submit_vote와 같은 이유).
+      if (room.judgementVotes[socket.id] !== undefined) return;
       room.judgementVotes[socket.id] = Boolean(payload?.approve);
       emitSubmissionProgress(io, room);
     });

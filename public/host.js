@@ -288,7 +288,10 @@ socket.on("state:phase_changed", ({ phase, round, phaseEndsAt }) => {
   }
   document.getElementById("phaseLabel").textContent = `${round}라운드 - ${PHASE_LABELS[phase]}`;
   startCountdown(phaseEndsAt, document.getElementById("timerLabel"));
-  if (phase === "night" || phase === "day_discussion") {
+  // 결과는 다음 밤이 올 때까지 남겨둔다. day_reveal(결과공개) 단계를 없앤 뒤로는
+  // 밤 해석 직후 곧바로 토론으로 넘어오는데, 여기서 day_discussion까지 지우고 있어서
+  // 밤 결과가 뜨자마자 지워졌다 — 진행자 화면에서 결과 칸이 늘 비어 보이던 원인.
+  if (phase === "night") {
     document.getElementById("resultLog").textContent = "";
   }
 
@@ -403,4 +406,12 @@ socket.on("state:game_over", ({ winner }) => {
   const label = document.getElementById("winnerLabel");
   label.style.display = "block";
   label.textContent = WINNER_LABELS[winner] ?? winner;
+
+  // 승리 진영은 페이즈 전환 슬라이드와 같은 방식으로 크게 띄우고, 자동으로 닫지 않는다.
+  showSlide(
+    WINNER_ICONS[winner] ?? "🏆",
+    WINNER_LABELS[winner] ?? winner,
+    WINNER_SUBS[winner] ?? "",
+    0,
+  );
 });

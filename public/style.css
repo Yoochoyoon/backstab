@@ -2336,6 +2336,70 @@ button,
   animation: phase-slide-out 260ms ease-in forwards;
 }
 
+/* 방장 겸 플레이어의 진행 바 — 폰 하단에 고정으로 붙여 진행자 화면 없이도 넘길 수 있게 한다. */
+.leader-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 900;
+  display: flex;
+  gap: 2vw;
+  padding: 1.2vh clamp(14px, 4vw, 24px) calc(1.2vh + env(safe-area-inset-bottom, 0px));
+  background: rgba(0, 0, 0, 0.92);
+  border-top: 0.3vh solid var(--color-crimson);
+  box-sizing: border-box;
+}
+
+.leader-bar__btn {
+  flex: 1;
+  width: auto;
+  min-height: 44px;
+  padding: 1.4vh 0;
+  border-radius: 1vh;
+  font-size: min(2vh, 4vw);
+  font-weight: 800;
+  background: #000;
+}
+
+.leader-bar__btn--extend {
+  border-color: #2ECC71;
+  color: #2ECC71;
+}
+
+.leader-bar__btn--advance {
+  border-color: #FFE500;
+  color: #FFE500;
+}
+
+/* 고정 바가 덮는 만큼 아래 여백을 줘서 채팅 입력창이 가려지지 않게 한다. */
+body.has-leader-bar .na-screen {
+  padding-bottom: 14vh;
+}
+
+/* 승리 발표처럼 계속 띄워두는 슬라이드 — 글자를 더 키우고 누를 수 있다는 걸 알려준다. */
+.phase-slide.is-sticky {
+  cursor: pointer;
+  background: rgba(0, 0, 0, 0.97);
+}
+
+.phase-slide.is-sticky .phase-slide__icon {
+  font-size: min(26vw, 22vh);
+}
+
+.phase-slide.is-sticky .phase-slide__title {
+  font-size: min(13vw, 9vh);
+}
+
+.phase-slide.is-sticky .phase-slide__content::after {
+  content: '화면을 누르면 닫힙니다';
+  display: block;
+  margin-top: 4vh;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: min(4vw, 2vh);
+  letter-spacing: 0.05em;
+}
+
 @keyframes phase-slide-in {
   from { opacity: 0; }
   to { opacity: 1; }

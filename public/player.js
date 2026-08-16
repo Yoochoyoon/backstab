@@ -201,6 +201,8 @@ let spyTeammates = [];
 let spyTeammatePreview = {};
 let leaderId = null;
 let myRoomCode = null;
+// 방장 진행 바에서 "시간 연장"을 보여줄지 판단하는 데 쓴다(타이머가 도는 페이즈인지).
+let myPhaseEndsAt = null;
 let judgementTarget = null; // { id, nickname }
 let myJudgement = null; // true=찬성, false=반대, null=미제출
 let myNightOptions = { canAttack: true, specialActions: [] };
@@ -282,6 +284,29 @@ document.getElementById("leaderStartBtn").addEventListener("click", () => {
   });
 });
 
+document.getElementById("leaderAdvanceBtn").addEventListener("click", () => {
+  socket.emit("host:advance_phase");
+});
+document.getElementById("leaderExtendBtn").addEventListener("click", () => {
+  socket.emit("host:extend_phase", { extraMs: 60_000 });
+});
+
+/**
+ * 방장 겸 플레이어에게만 하단 진행 바를 상시로 띄운다.
+ * 대기실에는 이미 "시작" 버튼이 있고, 종료 후에는 넘길 단계가 없으므로 그때는 감춘다.
+ * 시간 연장은 타이머가 도는 페이즈에서만 의미가 있어 phaseEndsAt으로 판단한다(진행자 화면과 같은 규칙).
+ */
+function renderLeaderBar() {
+  const bar = document.getElementById("leaderBar");
+  const isLeader = leaderId != null && leaderId === myId;
+  const inGame = currentPhase !== "lobby" && currentPhase !== "game_over";
+  const show = isLeader && inGame;
+  bar.style.display = show ? "flex" : "none";
+  document.getElementById("leaderExtendBtn").style.display = myPhaseEndsAt != null ? "block" : "none";
+  // 바가 화면 아래를 덮으므로 그만큼 여백을 준다(채팅 입력창이 가려지지 않게).
+  document.body.classList.toggle("has-leader-bar", show);
+}
+
 function renderWaitingList(list) {
   const el = document.getElementById("waitingPlayerList");
   el.innerHTML = "";
@@ -314,6 +339,8 @@ function renderLeaderControls() {
 socket.on("state:players", (payload) => {
   players = payload.players;
   if (payload.leaderId !== undefined) leaderId = payload.leaderId;
+  // 방장이 재접속으로 바뀌면(remapPlayerId) 진행 바의 주인도 같이 옮겨져야 한다.
+  renderLeaderBar();
   if (currentPhase === "lobby") {
     renderWaitingList(players);
     renderLeaderControls();
@@ -335,6 +362,9 @@ socket.on("state:vote_progress", (payload) => {
 socket.on("state:submission_progress", ({ submittedIds: ids }) => {
   submittedIds = ids;
   if (currentPhase === "night" || currentPhase === "day_vote") renderTargetList();
+  // 서버가 재제출을 막으므로 화면도 그 상태에 맞춘다. 재접속하면 버튼 잠금(markSubmitted)이
+  // 풀린 채로 돌아오는데, 그대로 두면 "낼 수 있는 것처럼 보이지만 서버가 무시하는" 상태가 된다.
+  if (myId && ids.includes(myId)) markSubmitted();
 });
 
 // host.js는 이 이벤트로 winnerLabel을 채우지만 player.js엔 리스너가 아예 없어서
@@ -342,6 +372,13 @@ socket.on("state:submission_progress", ({ submittedIds: ids }) => {
 // 같은 이벤트를 다시 보내주므로 리스너 하나로 두 경우 다 해결된다.
 socket.on("state:game_over", ({ winner }) => {
   document.getElementById("winnerLabel").textContent = WINNER_LABELS[winner] ?? winner;
+  // 승리 진영은 페이즈 전환 슬라이드와 같은 방식으로 크게 띄우고, 자동으로 닫지 않는다.
+  showSlide(
+    WINNER_ICONS[winner] ?? "🏆",
+    WINNER_LABELS[winner] ?? winner,
+    WINNER_SUBS[winner] ?? "",
+    0,
+  );
 });
 
 socket.on("public:boss_revealed", ({ nickname }) => {
@@ -412,8 +449,10 @@ function applyPhase(phase, round, phaseEndsAt) {
   const phaseActuallyChanged = phase !== currentPhase;
   currentPhase = phase;
   currentRound = round;
+  myPhaseEndsAt = phaseEndsAt ?? null;
   selectedTargetId = null;
   selectedAction = "attack";
+  renderLeaderBar();
 
   // 직전 결과는 결과공개~토론~투표 내내 띄워둔다. 예전엔 페이즈가 바뀔 때마다 무조건
   // 숨겨서, 결과가 2.4초짜리 슬라이드로 스치고 나면 다시 확인할 방법이 없었다 —
@@ -763,21 +802,27 @@ function renderJudgementPanel() {
 
   const me = players.find((p) => p.id === myId);
   const canVote = me ? me.alive : false;
+  // 찬반도 한 번 내면 확정이라, 이미 낸 사람은 버튼을 잠근다.
+  // 재접속해서 myJudgement를 잃어버려도 서버가 보내주는 제출 현황으로 알 수 있다.
+  const alreadyVoted = myJudgement !== null || (myId && submittedIds.includes(myId));
   const approveBtn = document.getElementById("judgeApproveBtn");
   const opposeBtn = document.getElementById("judgeOpposeBtn");
-  approveBtn.disabled = !canVote;
-  opposeBtn.disabled = !canVote;
+  approveBtn.disabled = !canVote || alreadyVoted;
+  opposeBtn.disabled = !canVote || alreadyVoted;
   approveBtn.classList.toggle("is-chosen", myJudgement === true);
   opposeBtn.classList.toggle("is-chosen", myJudgement === false);
 
   const note = document.getElementById("judgementNote");
   if (!canVote) {
     note.textContent = "사망해서 심판에 참여할 수 없습니다.";
-  } else if (myJudgement === null) {
+  } else if (myJudgement !== null) {
+    note.textContent = myJudgement ? "찬성했습니다." : "반대했습니다.";
+  } else if (alreadyVoted) {
+    // 재접속으로 내가 뭘 냈는지는 잃었지만, 낸 것 자체는 서버에 남아 있다.
+    note.textContent = "이미 제출했습니다. (변경 불가)";
+  } else {
     note.textContent =
       judgementTarget.id === myId ? "당신이 지목되었습니다. 변론하세요." : "";
-  } else {
-    note.textContent = myJudgement ? "찬성했습니다." : "반대했습니다.";
   }
 }
 
