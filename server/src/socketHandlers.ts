@@ -796,6 +796,11 @@ export function registerSocketHandlers(io: Server) {
     socket.on("host:advance_phase", () => {
       const room = data.roomCode ? getRoom(data.roomCode) : undefined;
       if (!room || !data.isHost) return;
+      // 자연 만료 타이머를 안 지우고 수동으로 먼저 진행하면, 그 타이머가 나중에
+      // 엉뚱한(이미 몇 라운드 지난) 페이즈에서 혼자 튀어나와 resolveVote 등을
+      // 한 번 더 불러버린다. "다음 단계로" 버튼은 항상 타이머보다 먼저 눌리는
+      // 경우를 위한 버튼이므로 이 정리가 없으면 사실상 매번 새는 셈이다.
+      clearPhaseTimer(room);
       if (room.phase === "night") resolveNight(io, room);
       else if (room.phase === "day_discussion") startVotePhase(io, room);
       else if (room.phase === "day_vote") resolveVote(io, room);
