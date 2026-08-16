@@ -25,7 +25,7 @@ function applyDamage(players: Player[], damageByTarget: Map<string, number>): {
 }
 
 const BASE_DAMAGE = 1;
-const BOOSTED_DAMAGE = 2; // 긴급 처형(보스), 흑막의 미소(배신자) 적용 시 기본 공격 대신 사용
+const BOOSTED_DAMAGE = 2; // 흑막의 미소(배신자) 적용 시 기본 공격 대신 사용. 긴급 처형은 아래에서 대상 HP를 그대로 먹인다(즉사).
 
 /**
  * 밤 페이즈 해석 (2라운드 이후 전용 — 1라운드 정찰 라운드는 socketHandlers에서 별도 처리).
@@ -86,7 +86,15 @@ export function resolveNightAttacks(
     } else if (action.actionType === "boss_execute") {
       if (attacker.role !== "boss" || attacker.abilities.bossExecuteUsed) continue;
       attacker.abilities.bossExecuteUsed = true;
-      rawDamageByTarget.set(action.targetId, (rawDamageByTarget.get(action.targetId) ?? 0) + BOOSTED_DAMAGE);
+      // 즉결처형은 데미지가 아니라 "처형" — 대상의 남은 HP가 몇이든 그 값을 그대로
+      // raw damage로 먹여서 무조건 0까지 떨어뜨린다. 다른 공격과 같은 파이프라인을
+      // 타므로 육탄방어(전량 흡수/절반 경감)로는 여전히 막을 수 있다 — 절반 경감이면
+      // 대상 HP의 절반만 깎여 즉사하지 않을 수 있고, 전량 흡수면 그 값이 조직원에게
+      // 대신 들어간다.
+      const target = byId.get(action.targetId);
+      if (target && target.alive) {
+        rawDamageByTarget.set(action.targetId, (rawDamageByTarget.get(action.targetId) ?? 0) + target.hp);
+      }
     } else if (action.actionType === "traitor_smile") {
       if (attacker.role !== "traitor" || attacker.abilities.traitorSmileUsed) continue;
       attacker.abilities.traitorSmileUsed = true;

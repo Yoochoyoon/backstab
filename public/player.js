@@ -153,7 +153,7 @@ const ACTION_META = {
   attack: { title: "기본 공격", sub: "지목한 대상에게 데미지 1을 입힙니다.", icon: "target" },
   boss_execute: {
     title: "긴급 처형",
-    sub: "지목한 대상에게 데미지 2를 입힙니다. 게임 중 단 한 번만 사용할 수 있습니다.",
+    sub: "지목한 대상을 남은 HP와 무관하게 즉시 처형합니다(육탄방어로는 막을 수 있음). 게임 중 단 한 번만 사용할 수 있습니다.",
     icon: "crown",
   },
   bodyguard_shield: {

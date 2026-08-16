@@ -63,24 +63,54 @@ test("resolveNightAttacks ignores targets submitted by dead attackers", () => {
   assert.equal(updatedPlayers.find((p) => p.id === "boss")!.hp, 5);
 });
 
-test("boss_execute deals double damage and can only be used once per game", () => {
+test("boss_execute kills the target outright regardless of remaining HP, and can only be used once per game", () => {
   const players = [
     makePlayer({ id: "boss", role: "boss", hp: 5 }),
-    makePlayer({ id: "spy1", role: "spy" }),
+    makePlayer({ id: "spy1", role: "spy", hp: 4 }),
   ];
   const round2 = resolveNightAttacks(players, { boss: { actionType: "boss_execute", targetId: "spy1" } }, 2);
   const spyAfterRound2 = round2.updatedPlayers.find((p) => p.id === "spy1")!;
-  assert.equal(spyAfterRound2.hp, 2); // 4 - 2
+  assert.equal(spyAfterRound2.hp, 0);
+  assert.equal(spyAfterRound2.alive, false);
   const bossAfterRound2 = round2.updatedPlayers.find((p) => p.id === "boss")!;
   assert.equal(bossAfterRound2.abilities.bossExecuteUsed, true);
 
-  const round3 = resolveNightAttacks(
-    round2.updatedPlayers,
-    { boss: { actionType: "boss_execute", targetId: "spy1" } },
-    3,
-  );
+  // 두 번째 시도(다음 라운드)는 이미 쓴 능력이라 무시된다 — 살아있는 다른 대상을 지목해도 데미지 없음.
+  const revivedTarget = round2.updatedPlayers.map((p) => (p.id === "spy1" ? { ...p, hp: 4, alive: true } : p));
+  const round3 = resolveNightAttacks(revivedTarget, { boss: { actionType: "boss_execute", targetId: "spy1" } }, 3);
   const spyAfterRound3 = round3.updatedPlayers.find((p) => p.id === "spy1")!;
-  assert.equal(spyAfterRound3.hp, 2); // 2회차 시도는 무시되어 데미지 없음
+  assert.equal(spyAfterRound3.hp, 4); // 2회차 시도는 무시되어 데미지 없음
+});
+
+test("boss_execute is a huge amount of raw damage, but bodyguard_shield can still block it", () => {
+  const absorb = resolveNightAttacks(
+    [
+      makePlayer({ id: "boss", role: "boss", hp: 5 }),
+      makePlayer({ id: "spy1", role: "spy", hp: 4 }),
+      makePlayer({ id: "bg1", role: "bodyguard", hp: 4 }),
+    ],
+    {
+      boss: { actionType: "boss_execute", targetId: "spy1" },
+      bg1: { actionType: "bodyguard_shield", targetId: "spy1", shieldMode: "absorb" },
+    },
+    2,
+  );
+  assert.equal(absorb.updatedPlayers.find((p) => p.id === "spy1")!.hp, 4); // 전량 흡수 - 대상 무피해
+  assert.equal(absorb.updatedPlayers.find((p) => p.id === "bg1")!.alive, false); // 대신 조직원이 즉사
+
+  const halve = resolveNightAttacks(
+    [
+      makePlayer({ id: "boss", role: "boss", hp: 5 }),
+      makePlayer({ id: "spy1", role: "spy", hp: 4 }),
+      makePlayer({ id: "bg1", role: "bodyguard", hp: 4 }),
+    ],
+    {
+      boss: { actionType: "boss_execute", targetId: "spy1" },
+      bg1: { actionType: "bodyguard_shield", targetId: "spy1", shieldMode: "halve" },
+    },
+    2,
+  );
+  assert.equal(halve.updatedPlayers.find((p) => p.id === "spy1")!.hp, 2); // 4의 절반만 깎여 즉사하지 않음
 });
 
 test("bodyguard_shield absorb mode redirects all damage from the target to the bodyguard", () => {
