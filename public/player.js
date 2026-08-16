@@ -107,12 +107,17 @@ function clearSession() {
 // 재접속을 걸어 서버 쪽 player.id를 새 소켓으로 갱신한다 — 안 그러면 화면은
 // 멀쩡한데 제출이 전부 무시되는 유령 상태가 된다.
 socket.on("server:hello", ({ startedAt }) => {
+  if (startedNewSession) return;
   const { sessionId, roomCode, savedAt } = readSession();
   if (!sessionId || !roomCode) return;
 
   const serverRestarted = startedAt > savedAt;
 
   socket.emit("player:reconnect", { sessionId, roomCode }, (res) => {
+    // 응답이 오는 사이 사용자가 "입장하기"/"새 방 만들기"를 눌렀다면, 그 결과가
+    // 이미 화면을 차지하고 있다 — 뒤늦게 도착한 이 재접속 응답으로 덮어쓰면
+    // 방금 새로 만든/입장한 방의 코드·대기 화면이 조용히 옛 방 것으로 바뀐다.
+    if (startedNewSession) return;
     if (res.ok) {
       myRoomCode = roomCode;
       joinSection.style.display = "none";
@@ -201,6 +206,10 @@ let spyTeammates = [];
 let spyTeammatePreview = {};
 let leaderId = null;
 let myRoomCode = null;
+// 페이지가 뜨자마자 자동 재접속(server:hello)이 저장된 세션으로 붙는 동안, 그보다
+// 늦게 도착하는 재접속 응답이 사용자가 방금 새로 만들거나 입장한 방을 덮어쓰지 않게
+// 막는 플래그. 클릭 시점에 바로 세워야 한다 — 응답이 오고 나서 세우면 이미 늦는다.
+let startedNewSession = false;
 // 방장 진행 바에서 "시간 연장"을 보여줄지 판단하는 데 쓴다(타이머가 도는 페이즈인지).
 let myPhaseEndsAt = null;
 let judgementTarget = null; // { id, nickname }
@@ -241,6 +250,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
   // 새 방에 직접 입장하는 순간 이전 세션은 더 이상 유효하지 않다 — 지워두지 않으면
   // 다음 새로고침 때 이 방이 아니라 이전(어쩌면 중단된) 방으로 자동 재접속돼버린다.
   clearSession();
+  startedNewSession = true;
 
   const code = document.getElementById("codeInput").value.trim().toUpperCase();
   const nickname = document.getElementById("nicknameInput").value.trim();
@@ -261,6 +271,7 @@ document.getElementById("joinBtn").addEventListener("click", () => {
 // 폰만으로 방을 만든다 — 방 코드 입력 없이 이름만 받고, 만든 사람이 방장이 된다.
 document.getElementById("createRoomBtn").addEventListener("click", () => {
   clearSession();
+  startedNewSession = true;
 
   const nickname = document.getElementById("nicknameInput").value.trim();
   socket.emit("player:create_room", { nickname, avatar: myAvatar }, (res) => {
