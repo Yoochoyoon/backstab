@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "tsx watch server/src/index.ts",
     "start": "tsx server/src/index.ts",
-    "test": "node --import tsx --test server/src/**/*.test.ts"
+    "test": "node --import tsx --test server/src/**/*.test.ts",
+    "qa": "node scripts/qa.mjs",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "express": "^4.19.2",
